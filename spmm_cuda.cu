@@ -34,8 +34,8 @@ void TorchSpmm(torch::Tensor sparse_matrix,
   cudaStreamCreate(&stream);
   printf("Set device and create stream\n");
   int m = 8;
-  int n = 8;
   int k = 8;
+  int n = 8;
   int nnz = 64;
   
   // Values of the sparse matrix
@@ -44,28 +44,21 @@ void TorchSpmm(torch::Tensor sparse_matrix,
     values[i] = (float)(i + 1);
   }
   
-  // Row indices
-  int row_indices[m];
-  int index = 0;
-  for(int i = 0; i < m; i++) {
-    row_indices[i] = index;
-    index += m;
-  }
-
   int row_offsets[m + 1];
-  index = 0;
+  int index = 0;
   for(int i = 0; i < m + 1; i++) {
     row_offsets[i] = index;
-    index += m;
+    index += k;
   }
 
   int column_indices[nnz];
-  int column_index = 0;
   for(int i = 0; i < nnz; i++) {
-    column_indices[i] = column_index;
-    column_index++;
-
-    column_index = column_index % n;
+    column_indices[i] = i % k;
+  }
+  // Row indices
+  int row_indices[m];
+  for(int i = 0; i < m; i++) {
+    row_indices[i] = i;
   }
   
   float dense[k * n];
