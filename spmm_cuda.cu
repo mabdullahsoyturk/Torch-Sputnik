@@ -11,24 +11,46 @@
   } while (0)
 
 // CUDA kernel launcher.
-void LaunchSpmm(int m, int k, int n, int nonzeros,
+/*void LaunchSpmm(int m, int k, int n, int nonzeros,
                 const float *values, const int *row_indices,
                 const int *row_offsets, const int *column_indices,
-                const float *dense_matrix, const float *bias,
+                const float *dense_matrix,
                 float *output_matrix) {
-  // NOTE: Passing nullptr as bias will execute the standard spmm w/ no bias or relu.
   auto stream = c10::cuda::getDefaultCUDAStream(0);
-  CUDA_CALL(sputnik::CudaSpmmBiasRelu(m, k, n, nonzeros, row_indices, values,
+  CUDA_CALL(sputnik::CudaSpmm(m, k, n, nonzeros, row_indices, values,
                                       row_offsets, column_indices, dense_matrix,
-                                      bias, output_matrix, stream));
+                                      output_matrix, stream));
+  cudaDeviceSynchronize();
+}*/
+
+torch::Tensor TensorSpmm(int m, int k, int n, int nonzeros,
+               torch::Tensor row_indices, torch::Tensor values,
+               torch::Tensor row_offsets, torch::Tensor column_indices,
+               torch::Tensor dense_matrix,
+               torch::Tensor output_matrix) {
+    cudaStream_t stream;
+    cudaStreamCreate(&stream);
+    float* _values = (float*)values.data_ptr();
+    int* _row_indices = (int*)row_indices.data_ptr();
+    int* _row_offsets = (int*)row_offsets.data_ptr();
+    int* _column_indices = (int*)column_indices.data_ptr();
+    float* _dense_matrix = (float*)dense_matrix.data_ptr();
+    float* _output_matrix = (float*)output_matrix.data_ptr();
+
+    CUDA_CALL(sputnik::CudaSpmm(m, k, n, nonzeros, 
+                                _row_indices, _values,
+                                _row_offsets, _column_indices,
+                                _dense_matrix, _output_matrix, stream));
+    cudaDeviceSynchronize();
+    cudaStreamDestroy(stream);
+    
+    return output_matrix;
 }
 
 // CUDA kernel launcher.
 void TorchSpmm(torch::Tensor sparse_matrix, 
                torch::Tensor dense_matrix,
                torch::Tensor output_matrix) {
-  // NOTE: Passing nullptr as bias will execute the standard spmm w/ no bias or relu.
-  const float* bias = NULL;
   cudaSetDevice(0);
   cudaStream_t stream;
   cudaStreamCreate(&stream);
@@ -108,34 +130,4 @@ void TorchSpmm(torch::Tensor sparse_matrix,
     printf("Index %d: %f\n", i, output[i]);
   }
   cudaStreamDestroy(stream);
-}
-
-__global__ void test_kernel(float* a, float* b, float* c) {
-  c[threadIdx.x] = a[threadIdx.x] + b[threadIdx.x]; 
-}
-
-void Test() {
-  const float a[] = { 1.0f,  2.0f,  3.0f,  4.0f,
-                          5.0f,  6.0f,  7.0f,  8.0f,
-                          9.0f, 10.0f, 11.0f, 12.0f};
-
-  float* d_a;
-  CUDA_CALL(cudaMalloc(&d_a, 12 * sizeof(float)));
-  CUDA_CALL(cudaMemcpy(d_a, a, 12 * sizeof(float), cudaMemcpyHostToDevice));
-
-  const float b[] = { 1.0f,  2.0f,  3.0f,  4.0f,
-                          5.0f,  6.0f,  7.0f,  8.0f,
-                          9.0f, 10.0f, 11.0f, 12.0f};
-
-  float* d_b;
-  CUDA_CALL(cudaMalloc(&d_b, 12 * sizeof(float)));
-  CUDA_CALL(cudaMemcpy(d_b, b, 12 * sizeof(float), cudaMemcpyHostToDevice));
-
-  float* d_c;
-  CUDA_CALL(cudaMalloc(&d_c, 12 * sizeof(float)));
-
-  printf("Before the kernel\n");
-  test_kernel<<<1, 12>>>(d_a, d_b, d_c);
-  cudaDeviceSynchronize();
-  printf("After the kernel\n");
 }
