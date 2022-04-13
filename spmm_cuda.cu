@@ -30,12 +30,12 @@ torch::Tensor TensorSpmm(int m, int k, int n, int nonzeros,
                torch::Tensor output_matrix) {
     cudaStream_t stream;
     cudaStreamCreate(&stream);
-    float* _values = (float*)(values.data_ptr());
-    int* _row_indices = (int*)(row_indices.data_ptr<int>());
-    int* _row_offsets = (int*)(row_offsets.data_ptr<int>());
-    int* _column_indices = (int*)(column_indices.data_ptr<int>());
-    float* _dense_matrix = (float*)(dense_matrix.data_ptr<float>());
-    float* _output_matrix = (float*)(output_matrix.data_ptr<float>());
+    float* _values = values.data_ptr<float>();
+    int* _row_indices = row_indices.data_ptr<int>();
+    int* _row_offsets = row_offsets.data_ptr<int>();
+    int* _column_indices = column_indices.data_ptr<int>();
+    float* _dense_matrix = dense_matrix.data_ptr<float>();
+    float* _output_matrix = output_matrix.data_ptr<float>();
 
     CUDA_CALL(sputnik::CudaSpmm(m, k, n, nonzeros, 
                                 _row_indices, _values,

@@ -12,37 +12,16 @@ def dense_to_sparse(matrix):
 
      return values.cuda(), row_indices.cuda(), row_offsets.cuda(), column_indices.cuda()
 
-
-def tensor_spmm():
-    a = torch.arange(1,65, dtype=torch.float32).view(8,8)
+def tensor_spmm(m, k, n, nnz):
+    a = torch.arange(1, nnz + 1, dtype=torch.float32).view(m, k)
     values, row_indices, row_offsets, column_indices = dense_to_sparse(a)
 
-    print("Values:")
-    print(values.dtype)
-    print("Row Indices:")
-    print(row_indices.dtype)
-    print("Row Offsets:")
-    print(row_offsets.dtype)
-    print("Column Indices:")
-    print(column_indices.dtype)
+    b = torch.arange(1,nnz + 1).view(k, n).cuda().to(torch.float32)
+    c = torch.zeros((m, n)).cuda()
 
-    b = torch.arange(1,65).view(8,8).cuda().to(torch.float32)
-    print(b.dtype)
-    c = torch.zeros((8,8)).cuda()
-    print(c.dtype)
+    result = torch_sputnik.tensor_spmm(m, k, n, nnz, row_indices, values, row_offsets, column_indices, b, c)
 
-    result = torch_sputnik.tensor_spmm(8,8,8,64, row_indices, values, row_offsets, column_indices, b, c)
-
-    print("Result:")
     print(result)
 
-def torch_spmm():
-     a = torch.arange(1,65).view(8,8)
-     b = torch.arange(1,65).view(8,8).cuda()
-     c = torch.zeros((8,8)).cuda()
-
-     result = torch_sputnik.torch_spmm(a,b,c)
-
 if __name__ == "__main__":
-    tensor_spmm()
-    #torch_spmm()
+    tensor_spmm(8, 8, 8, 64)
