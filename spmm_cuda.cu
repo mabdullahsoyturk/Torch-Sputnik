@@ -30,12 +30,12 @@ torch::Tensor TensorSpmm(int m, int k, int n, int nonzeros,
                torch::Tensor output_matrix) {
     cudaStream_t stream;
     cudaStreamCreate(&stream);
-    float* _values = (float*)values.data_ptr();
-    int* _row_indices = (int*)row_indices.data_ptr();
-    int* _row_offsets = (int*)row_offsets.data_ptr();
-    int* _column_indices = (int*)column_indices.data_ptr();
-    float* _dense_matrix = (float*)dense_matrix.data_ptr();
-    float* _output_matrix = (float*)output_matrix.data_ptr();
+    float* _values = (float*)(values.data_ptr());
+    int* _row_indices = (int*)(row_indices.data_ptr<int>());
+    int* _row_offsets = (int*)(row_offsets.data_ptr<int>());
+    int* _column_indices = (int*)(column_indices.data_ptr<int>());
+    float* _dense_matrix = (float*)(dense_matrix.data_ptr<float>());
+    float* _output_matrix = (float*)(output_matrix.data_ptr<float>());
 
     CUDA_CALL(sputnik::CudaSpmm(m, k, n, nonzeros, 
                                 _row_indices, _values,
@@ -64,23 +64,27 @@ void TorchSpmm(torch::Tensor sparse_matrix,
   float values[nnz];
   for(int i = 0; i < nnz; i++) {
     values[i] = (float)(i + 1);
+    printf("values[%d]: %f\n", i, values[i]);
   }
   
   int row_offsets[m + 1];
   int index = 0;
   for(int i = 0; i < m + 1; i++) {
     row_offsets[i] = index;
+    printf("row_offsets[%d]: %d\n", i, row_offsets[i]);
     index += k;
   }
 
   int column_indices[nnz];
   for(int i = 0; i < nnz; i++) {
     column_indices[i] = i % k;
+    printf("column_indices[%d]: %d\n", i, column_indices[i]);
   }
   // Row indices
   int row_indices[m];
   for(int i = 0; i < m; i++) {
     row_indices[i] = i;
+    printf("row_indices[%d]: %d\n", i, row_indices[i]);
   }
   
   float dense[k * n];
@@ -126,8 +130,8 @@ void TorchSpmm(torch::Tensor sparse_matrix,
                                       d_output, stream));
   cudaDeviceSynchronize();
   CUDA_CALL(cudaMemcpy(output, d_output, m * n * sizeof(float), cudaMemcpyDeviceToHost));
-  for(int i = 0; i < m * n; i++) {
-    printf("Index %d: %f\n", i, output[i]);
-  }
+  //for(int i = 0; i < m * n; i++) {
+  //  printf("Index %d: %f\n", i, output[i]);
+  //}
   cudaStreamDestroy(stream);
 }
