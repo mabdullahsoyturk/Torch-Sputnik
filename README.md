@@ -1,3 +1,7 @@
+# Conceptual View
+
+![SpMM and SDDMM](figures/spmm_and_sddmm.png)
+
 # Steps
 
 * &#9989; Write Python bindnigs for SpMM with Pytorch tensors.
