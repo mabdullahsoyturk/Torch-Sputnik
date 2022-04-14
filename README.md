@@ -29,4 +29,22 @@ class MyLinear(torch.nn.Module):
         return MyLinearFunction.apply(input, self.weights, self.bias)
 ```
 
-* Replace **nn.Linear** and attention products with **sputnik.spmm**.
+* Replace original attention products with sparse implementation.
+
+Original implementation:
+
+```Python
+  logits = matmul(q, k, transpose_b=True)
+  logits = add(logits, bias)
+  weights = softmax(logits)
+  return matmul(weights, v)
+```
+Sparse implementation:
+
+```Python
+  q_3d, k_3d, v_3d = [preprocess_attention_component(x) for x in [q, k, v]]
+  logits = replicated_sddmm(q_3d, k_3d, topology, transpose_rhs=True)
+  weights = replicated_sparse_softmax(logits, topology)
+  out = replicated_spmm(weights, topology, v_3d)
+  return reshape(out, tf.shape(q))
+```
