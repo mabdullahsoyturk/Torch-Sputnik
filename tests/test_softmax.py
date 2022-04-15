@@ -12,16 +12,21 @@ def dense_to_sparse(matrix):
 
      return values.cuda(), row_indices.cuda(), row_offsets.cuda(), column_indices.cuda()
 
-def tensor_spmm(m, k, n, nnz):
+def tensor_sddmm(m, k, n, nnz):
     a = torch.arange(1, nnz + 1, dtype=torch.float32).view(m, k)
     values, row_indices, row_offsets, column_indices = dense_to_sparse(a)
 
-    b = torch.arange(1,nnz + 1).view(k, n).cuda().to(torch.float32)
-    c = torch.zeros((m, n)).cuda()
+    lhs_matrix = torch.arange(1,nnz + 1).view(k, n).cuda().to(torch.float32)
+    print(lhs_matrix)
+    rhs_matrix = torch.arange(1,nnz + 1).view(k, n).cuda().to(torch.float32)
+    print(rhs_matrix)
 
-    result = torch_sputnik.spmm(m, k, n, nnz, row_indices, values, row_offsets, column_indices, b, c)
+    output_values = torch_sputnik.sddmm(m, k, n, nnz, row_indices, row_offsets, column_indices, lhs_matrix, rhs_matrix, values)
 
-    print(result)
+    print(output_values)
+
+    softmax_output = torch_sputnik.softmax(m, n, nnz, output_values, row_indices, row_offsets, column_indices, output_values)
+    print(softmax_output)
 
 if __name__ == "__main__":
-    tensor_spmm(8, 8, 8, 64)
+    tensor_sddmm(8, 8, 8, 64)

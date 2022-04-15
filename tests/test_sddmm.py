@@ -21,7 +21,7 @@ def tensor_sddmm(m, k, n, nnz):
     rhs_matrix = torch.arange(1,nnz + 1).view(k, n).cuda().to(torch.float32)
     print(rhs_matrix)
 
-    output_values = torch_sputnik.tensor_sddmm(m, k, n, nnz, row_indices, row_offsets, column_indices, lhs_matrix, rhs_matrix, values)
+    output_values = torch_sputnik.sddmm(m, k, n, nnz, row_indices, row_offsets, column_indices, lhs_matrix, rhs_matrix, values)
 
     print(output_values.size())
 
