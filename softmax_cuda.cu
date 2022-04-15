@@ -10,27 +10,26 @@
     CHECK_EQ(status, cudaSuccess) << "CUDA Error: " << err; \
   } while (0)
 
-torch::Tensor spmm(int m, int k, int n, int nonzeros,
-               torch::Tensor row_indices, torch::Tensor values,
-               torch::Tensor row_offsets, torch::Tensor column_indices,
-               torch::Tensor dense_matrix,
-               torch::Tensor output_matrix) {
+torch::Tensor softmax(int m, n, int nonzeros,
+                      torch::Tensor values,
+                      torch::Tensor row_indices,
+                      torch::Tensor row_offsets,
+                      torch::Tensor column_indices,
+                      torch::Tensor output_values) {
     at::cuda::CUDAStream torch_stream = at::cuda::getCurrentCUDAStream();
     cudaStream_t stream = torch_stream.stream();
     float* _values = values.data_ptr<float>();
     int* _row_indices = row_indices.data_ptr<int>();
     int* _row_offsets = row_offsets.data_ptr<int>();
     int* _column_indices = column_indices.data_ptr<int>();
-    float* _dense_matrix = dense_matrix.data_ptr<float>();
-    float* _output_matrix = output_matrix.data_ptr<float>();
+    float* _output_values = output_values.data_ptr<float>();
 
-    CUDA_CALL(sputnik::CudaSpmm(m, k, n, nonzeros, 
-                                _row_indices, 
+    CUDA_CALL(sputnik::SparseSoftmax(m, n, nonzeros, 
                                 _values,
+                                _row_indices, 
                                 _row_offsets, 
                                 _column_indices,
-                                _dense_matrix, 
-                                _output_matrix, 
+                                _output_values, 
                                 stream));
     cudaDeviceSynchronize();
     

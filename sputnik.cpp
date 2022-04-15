@@ -1,7 +1,7 @@
 #include <torch/extension.h>
 
 // Forward Declaration
-torch::Tensor TensorSpmm(int m, int k, int n, int nonzeros,
+torch::Tensor spmm(int m, int k, int n, int nonzeros,
                 torch::Tensor values, 
                 torch::Tensor row_indices,
                 torch::Tensor row_offsets, 
@@ -9,7 +9,7 @@ torch::Tensor TensorSpmm(int m, int k, int n, int nonzeros,
                 torch::Tensor dense_matrix,
                 torch::Tensor output_matrix);
 
-torch::Tensor TensorSddmm(int m, int k, int n, int nonzeros,
+torch::Tensor sddmm(int m, int k, int n, int nonzeros,
                           torch::Tensor row_indices,
                           torch::Tensor row_offsets,
                           torch::Tensor column_indices,
@@ -17,7 +17,15 @@ torch::Tensor TensorSddmm(int m, int k, int n, int nonzeros,
                           torch::Tensor rhs_matrix,
                           torch::Tensor output_values);
 
+torch::Tensor softmax(int m, n, int nonzeros,
+                      torch::Tensor values,
+                      torch::Tensor row_indices,
+                      torch::Tensor row_offsets,
+                      torch::Tensor column_indices,
+                      torch::Tensor output_values);
+
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
-  m.def("tensor_spmm", &TensorSpmm, "SpMM with PyTorch Tensors");
-  m.def("tensor_sddmm", &TensorSddmm, "SDDMM with PyTorch Tensors");
+  m.def("spmm", &spmm, "Sparse Matrix Matrix Multiplication");
+  m.def("sddmm", &sddmm, "Sampled Dense Dense Matrix Multiplication");
+  m.def("softmax", &softmax, "Sparse softmax");
 }

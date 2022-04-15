@@ -10,7 +10,7 @@
     CHECK_EQ(status, cudaSuccess) << "CUDA Error: " << err; \
   } while (0)
 
- torch::Tensor TensorSddmm(int m, int k, int n, int nonzeros,
+ torch::Tensor sddmm(int m, int k, int n, int nonzeros,
                            torch::Tensor row_indices,
                            torch::Tensor row_offsets,
                            torch::Tensor column_indices,

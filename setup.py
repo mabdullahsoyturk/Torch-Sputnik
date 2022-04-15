@@ -13,7 +13,8 @@ setup(
         CUDAExtension('torch_sputnik', [
             'sputnik.cpp',
             'spmm_cuda.cu',
-            'sddmm_cuda.cu'
+            'sddmm_cuda.cu',
+            'softmax_cuda.cu'
         ],
         include_dirs=['/home/msoyturk/sputnik'],
         library_dirs=['/home/msoyturk/bind-sputnik'],
