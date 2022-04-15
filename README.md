@@ -53,7 +53,7 @@ Sparse implementation:
   return reshape(out, tf.shape(q))
 ```
 
-* Implement csr softmax (to avoid sparse to dense conversion in sparse dot product attention)
+* &#9989; Implement csr softmax (to avoid sparse to dense conversion in sparse dot product attention)
 
 * Implement csr transposition (we need it to calculate the gradient of both spmm and sddmm)
 
@@ -90,5 +90,3 @@ def _spmm_grad(op, grad):
 
   return [None, None, sparse_matrix_grad, None, None, None, dense_matrix_grad]
 ```
-
-* Implement csr softmax (to avoid sparse to dense conversion in sparse dot product attention)
