@@ -52,3 +52,39 @@ Sparse implementation:
   out = replicated_spmm(weights, topology, v_3d)
   return reshape(out, tf.shape(q))
 ```
+
+* Implement csr transposition (we need it to calculate the gradient of both spmm and sddmm)
+
+```Python
+def _spmm_grad(op, grad):
+  """Gradient operation for sparse matrix matrix multiplication."""
+  m = op.inputs[0]
+  k = op.inputs[1]
+  values = op.inputs[2]
+  row_indices = op.inputs[3]
+  row_offsets = op.inputs[4]
+  column_indices = op.inputs[5]
+  dense_matrix = op.inputs[6]
+
+  # Sparse matrix gradient: multiply the gradient by the transposed
+  # dense matrix.
+  sparse_matrix_grad = kernels.sddmm(
+      m,
+      k,
+      row_indices,
+      row_offsets,
+      column_indices,
+      grad,
+      dense_matrix,
+      transpose_rhs=True)
+
+  # Dense matrix gradient: transpose the sparse weights, calculate the
+  # new row indices, and multiply sparse matrix with dense gradient.
+  values_t, row_offsets_t, column_indices_t = kernels.csr_transpose(
+      m, k, values, row_offsets, column_indices)
+  row_indices_t = diffsort(row_offsets_t)
+  dense_matrix_grad = kernels.spmm(k, m, values_t, row_indices_t, row_offsets_t,
+                                   column_indices_t, grad)
+
+  return [None, None, sparse_matrix_grad, None, None, None, dense_matrix_grad]
+```
