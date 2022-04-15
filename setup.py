@@ -11,8 +11,9 @@ setup(
     name='torch_sputnik',
     ext_modules=[
         CUDAExtension('torch_sputnik', [
-            'spmm.cpp',
+            'sputnik.cpp',
             'spmm_cuda.cu',
+            'sddmm_cuda.cu'
         ],
         include_dirs=['/home/msoyturk/sputnik'],
         library_dirs=['/home/msoyturk/bind-sputnik'],

@@ -10,13 +10,15 @@
     CHECK_EQ(status, cudaSuccess) << "CUDA Error: " << err; \
   } while (0)
 
-torch::Tensor TensorSpmm(int m, int k, int n, int nonzeros,
-               torch::Tensor row_indices, torch::Tensor values,
-               torch::Tensor row_offsets, torch::Tensor column_indices,
-               torch::Tensor dense_matrix,
-               torch::Tensor output_matrix) {
-    at::cuda::CUDAStream torch_stream = at::cuda::getCurrentCUDAStream();
-    cudaStream_t stream = torch_stream.stream();
+ torch::Tensor TensorSddmm(int m, int k, int n, int nonzeros,
+                           torch::Tensor row_indices,
+                           torch::Tensor row_offsets,
+                           torch::Tensor column_indices,
+                           torch::Tensor lhs_matrix,
+                           torch::Tensor rhs_matrix,
+                           torch::Tensor output_values) {
+    /*cudaStream_t stream;
+    cudaStreamCreate(&stream);
     float* _values = values.data_ptr<float>();
     int* _row_indices = row_indices.data_ptr<int>();
     int* _row_offsets = row_offsets.data_ptr<int>();
@@ -29,6 +31,7 @@ torch::Tensor TensorSpmm(int m, int k, int n, int nonzeros,
                                 _row_offsets, _column_indices,
                                 _dense_matrix, _output_matrix, stream));
     cudaDeviceSynchronize();
+    cudaStreamDestroy(stream);*/
     
-    return output_matrix;
+    return output_values;
 }
