@@ -2,3 +2,4 @@ torch_sputnik.cpython-39-x86_64-linux-gnu.so
 build/
 libsputnik.so
 torch_sputnik.egg-info
+.vscode/
