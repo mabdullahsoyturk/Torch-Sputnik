@@ -4,15 +4,23 @@ import numpy as np
 
 class Spmm(torch.autograd.Function):
     @staticmethod
-    def forward(ctx, row_indices, values, row_offsets, column_indices, b, c):
+    def forward(ctx, m, k, n, nnz, row_indices, values, row_offsets, column_indices, b, c):
+        ctx.m = m
+        ctx.k = k
+        ctx.n = n
+        ctx.nnz = nnz
         ctx.save_for_backward(values, row_indices, row_offsets, column_indices, b)
-        return torch_sputnik.spmm(8, 8, 8, 64, row_indices, values, row_offsets, column_indices, b, c)
+        return torch_sputnik.spmm(m, k, n, nnz, row_indices, values, row_offsets, column_indices, b, c)
 
     @staticmethod
     def backward(ctx, grad_output):
         values, row_indices, row_offsets, column_indices, b, = ctx.saved_tensors
-        out = torch_sputnik.sddmm(8, 8, 8, 64, row_indices, row_offsets, column_indices, grad_output, b, values)
-        return None, out, None, None, None, None
+        m = ctx.m
+        k = ctx.k
+        n = ctx.n
+        nnz = ctx.nnz
+        out = torch_sputnik.sddmm(m, k, n, nnz, row_indices, row_offsets, column_indices, grad_output, b, values)
+        return None, None, None, None, None, out, None, None, None, None
 
 def dense_to_sparse(matrix):
      """Converts dense numpy matrix to a csr sparse matrix."""
@@ -42,7 +50,7 @@ P3 = Spmm.apply
 
 # Forward pass: compute predicted y using operations; we compute
 # P3 using our custom autograd operation.
-y_pred = P3(row_indices, values, row_offsets, column_indices, y, z)
+y_pred = P3(m, k, n, nnz, row_indices, values, row_offsets, column_indices, y, z)
 
 # Compute and print loss
 print(y_pred - correct_result)
