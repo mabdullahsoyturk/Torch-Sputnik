@@ -4,8 +4,8 @@
 
 # Steps
 
-* &#9989; Write Python bindnigs for SpMM with Pytorch tensors.
-* &#9989; Write Python bindnigs for SDDMM with Pytorch tensors.
+* &#9989; Write Python bindings for SpMM with Pytorch tensors.
+* &#9989; Write Python bindings for SDDMM with Pytorch tensors.
 * Wrap SpMM and SDDMM with **torch.autograd.Function** and **torch.nn.Module** to make them first class citizens of PyTorch.
 
 ```Python
