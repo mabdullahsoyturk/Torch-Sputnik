@@ -17,7 +17,7 @@ torch::Tensor sddmm(int m, int k, int n, int nonzeros,
                           torch::Tensor rhs_matrix,
                           torch::Tensor output_values);
 
-torch::Tensor softmax(int m, n, int nonzeros,
+torch::Tensor softmax(int m, int n, int nonzeros,
                       torch::Tensor values,
                       torch::Tensor row_indices,
                       torch::Tensor row_offsets,
@@ -25,7 +25,7 @@ torch::Tensor softmax(int m, n, int nonzeros,
                       torch::Tensor output_values);
 
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
-  m.def("spmm", &spmm, "Sparse Matrix Matrix Multiplication");
-  m.def("sddmm", &sddmm, "Sampled Dense Dense Matrix Multiplication");
-  m.def("softmax", &softmax, "Sparse softmax");
+  m.def("spmm", &spmm, "Sparse Matrix Matrix Multiplication: AxB");
+  m.def("sddmm", &sddmm, "Sampled Dense Dense Matrix Multiplication: (AxB).C = D");
+  m.def("softmax", &softmax, "Computes softmax function across the last dim of a sparse matrix");
 }

@@ -10,7 +10,7 @@
     CHECK_EQ(status, cudaSuccess) << "CUDA Error: " << err; \
   } while (0)
 
-torch::Tensor softmax(int m, n, int nonzeros,
+torch::Tensor softmax(int m, int n, int nonzeros,
                       torch::Tensor values,
                       torch::Tensor row_indices,
                       torch::Tensor row_offsets,
@@ -33,5 +33,5 @@ torch::Tensor softmax(int m, n, int nonzeros,
                                 stream));
     cudaDeviceSynchronize();
     
-    return output_matrix;
+    return output_values;
 }
