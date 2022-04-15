@@ -25,9 +25,13 @@ torch::Tensor TensorSpmm(int m, int k, int n, int nonzeros,
     float* _output_matrix = output_matrix.data_ptr<float>();
 
     CUDA_CALL(sputnik::CudaSpmm(m, k, n, nonzeros, 
-                                _row_indices, _values,
-                                _row_offsets, _column_indices,
-                                _dense_matrix, _output_matrix, stream));
+                                _row_indices, 
+                                _values,
+                                _row_offsets, 
+                                _column_indices,
+                                _dense_matrix, 
+                                _output_matrix, 
+                                stream));
     cudaDeviceSynchronize();
     
     return output_matrix;

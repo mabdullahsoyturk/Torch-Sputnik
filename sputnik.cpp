@@ -19,4 +19,5 @@ torch::Tensor TensorSddmm(int m, int k, int n, int nonzeros,
 
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   m.def("tensor_spmm", &TensorSpmm, "SpMM with PyTorch Tensors");
+  m.def("tensor_sddmm", &TensorSddmm, "SDDMM with PyTorch Tensors");
 }

@@ -17,21 +17,25 @@
                            torch::Tensor lhs_matrix,
                            torch::Tensor rhs_matrix,
                            torch::Tensor output_values) {
-    /*cudaStream_t stream;
-    cudaStreamCreate(&stream);
-    float* _values = values.data_ptr<float>();
+    at::cuda::CUDAStream torch_stream = at::cuda::getCurrentCUDAStream();
+    cudaStream_t stream = torch_stream.stream();
+    
     int* _row_indices = row_indices.data_ptr<int>();
     int* _row_offsets = row_offsets.data_ptr<int>();
     int* _column_indices = column_indices.data_ptr<int>();
-    float* _dense_matrix = dense_matrix.data_ptr<float>();
-    float* _output_matrix = output_matrix.data_ptr<float>();
+    float* _lhs_matrix = lhs_matrix.data_ptr<float>();
+    float* _rhs_matrix = rhs_matrix.data_ptr<float>();
+    float* _output_values = output_values.data_ptr<float>();
 
-    CUDA_CALL(sputnik::CudaSpmm(m, k, n, nonzeros, 
-                                _row_indices, _values,
-                                _row_offsets, _column_indices,
-                                _dense_matrix, _output_matrix, stream));
+    CUDA_CALL(sputnik::CudaSddmm(m, k, n, nonzeros, 
+                                _row_indices, 
+                                _row_offsets, 
+                                _column_indices,
+                                _lhs_matrix, 
+                                _rhs_matrix, 
+                                _output_values, 
+                                stream));
     cudaDeviceSynchronize();
-    cudaStreamDestroy(stream);*/
     
     return output_values;
 }
