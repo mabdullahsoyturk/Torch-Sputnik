@@ -2,6 +2,10 @@ import torch
 import torch_sputnik
 import numpy as np
 
+def diffsort(offsets):
+  diffs = (offsets - torch.roll(offsets, -1, 0))[:-1]
+  return torch.argsort(diffs, descending=True).to(torch.int32)
+
 class Spmm(torch.autograd.Function):
     @staticmethod
     def forward(ctx, m, k, n, nnz, row_indices, values, row_offsets, column_indices, b, c):
@@ -19,12 +23,19 @@ class Spmm(torch.autograd.Function):
         k = ctx.k
         n = ctx.n
         nnz = ctx.nnz
-        out = torch_sputnik.sddmm(m, k, n, nnz, row_indices, row_offsets, column_indices, grad_output, b, values)
+        sparse_matrix_grad = torch_sputnik.sddmm(m, k, n, nnz, row_indices, row_offsets, column_indices, grad_output, b, values)
 
-        #values_t, row_offsets_t, column_indices_t = torch_sputnik.csr_transpose(m, k, values, row_offsets, column_indices)
-        #row_indices_t = diffsort(row_offsets_t)
+        values_t = values.clone()
+        row_offsets_t = row_offsets.clone()
+        column_indices_t = column_indices.clone()
 
-        return None, None, None, None, None, out, None, None, None, None
+        torch_sputnik.csr_transpose(m, n, nnz, values, row_offsets, column_indices, values_t, row_offsets_t, column_indices_t)
+        row_indices_t = diffsort(row_offsets_t)
+
+        #m, k, n, nnz, row_indices, values, row_offsets, column_indices, b, c
+        dense_matrix_grad = torch_sputnik.spmm(k, m, n, nnz, row_indices_t, values_t, row_offsets_t, column_indices_t, b, grad_output)
+
+        return None, None, None, None, None, sparse_matrix_grad, None, None, dense_matrix_grad, None
 
 def dense_to_sparse(matrix):
      """Converts dense numpy matrix to a csr sparse matrix."""
@@ -63,5 +74,7 @@ print(loss.item())
 
 # Use autograd to compute the backward pass.
 print(f'Before: {values.grad}')
+print(f'Before: {y.grad}')
 loss.backward()
 print(f'After: {values.grad}')
+print(f'After: {y.grad}')
