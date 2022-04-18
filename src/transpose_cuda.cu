@@ -1,3 +1,7 @@
+#include <sputnik/sputnik.h>
+#include <torch/extension.h>
+#include <ATen/ATen.h>
+#include <c10/cuda/CUDAStream.h>
 #include <cusparse.h>
 
 #define CUSPARSE_CALL(code)                                        \
@@ -6,9 +10,7 @@
     CHECK_EQ(status, CUSPARSE_STATUS_SUCCESS) << "CuSparse Error"; \
   } while (0)
 
-}
-
-torch::Tensor AllocateTransposeWorkspace(
+torch::Tensor allocate_transpose_workspace(
         int m, int n, int nonzeros, 
         torch::Tensor values, 
         torch::Tensor row_offsets,
@@ -18,13 +20,13 @@ torch::Tensor AllocateTransposeWorkspace(
         torch::Tensor output_column_indices
     ) {
 
-    at::cuda::CUDAStream torch_stream = at::cuda::getCurrentCUDAStream();
-    cudaStream_t stream = torch_stream.stream();
+    cusparseHandle_t handle = NULL;
+    CUSPARSE_CALL(cusparseCreate(&handle));
 
     // Calculate the buffer size.
     size_t buffer_size = 0;
     CUSPARSE_CALL(cusparseCsr2cscEx2_bufferSize(
-        stream, m, n, nonzeros, 
+        handle, m, n, nonzeros, 
         values.data_ptr<float>(), 
         row_offsets.data_ptr<int>(),
         column_indices.data_ptr<int>(), 
@@ -35,13 +37,15 @@ torch::Tensor AllocateTransposeWorkspace(
         CUSPARSE_CSR2CSC_ALG1, &buffer_size));
 
     // Allocate the temporary buffer. Round up to the nearest float for the size of the buffer.
-    int64 buffer_size_signed = (buffer_size + sizeof(float) - 1) / sizeof(float);
+    int buffer_size_signed = (buffer_size + sizeof(float) - 1) / sizeof(float);
     
     auto options = torch::TensorOptions()
                         .dtype(torch::kFloat32)
                         .device(torch::kCUDA, 0);
 
     torch::Tensor workspace = torch::zeros(buffer_size_signed, options);
+
+    cusparseDestroy(handle);
 
     return workspace;
 }
@@ -55,12 +59,12 @@ void csr_transpose(int m, int n, int nonzeros,
                    torch::Tensor output_column_indices,
                    torch::Tensor workspace) {
 
-    at::cuda::CUDAStream torch_stream = at::cuda::getCurrentCUDAStream();
-    cudaStream_t stream = torch_stream.stream();
+    cusparseHandle_t handle = NULL;
+    CUSPARSE_CALL(cusparseCreate(&handle));
 
     // Launch the kernel.
     CUSPARSE_CALL(cusparseCsr2cscEx2(
-        stream, m, n, nonzeros, 
+        handle, m, n, nonzeros, 
         values.data_ptr<float>(), 
         row_offsets.data_ptr<int>(),
         column_indices.data_ptr<int>(), 

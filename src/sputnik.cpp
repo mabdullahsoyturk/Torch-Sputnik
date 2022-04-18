@@ -34,14 +34,15 @@ torch::Tensor allocate_transpose_workspace(
                     torch::Tensor output_column_indices);
 
 
-void csr_transpose(int m, int n, int nonzeros,
-                    torch::Tensor values, 
-                    torch::Tensor row_offsets,
-                    torch::Tensor column_indices,
-                    torch::Tensor output_values,
-                    torch::Tensor output_row_offsets,
-                    torch::Tensor output_column_indices,
-                    torch::Tensor workspace);
+void csr_transpose(
+                   int m, int n, int nonzeros,
+                   torch::Tensor values, 
+                   torch::Tensor row_offsets,
+                   torch::Tensor column_indices,
+                   torch::Tensor output_values,
+                   torch::Tensor output_row_offsets,
+                   torch::Tensor output_column_indices,
+                   torch::Tensor workspace);
 
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   m.def("spmm", &spmm, "Sparse Matrix Matrix Multiplication: AxB");
