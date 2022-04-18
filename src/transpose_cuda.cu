@@ -10,7 +10,7 @@
     CHECK_EQ(status, CUSPARSE_STATUS_SUCCESS) << "CuSparse Error"; \
   } while (0)
 
-torch::Tensor allocate_transpose_workspace(
+torch::Tensor allocate_transpose_workspace(cusparseHandle_t* handle,
         int m, int n, int nonzeros, 
         torch::Tensor values, 
         torch::Tensor row_offsets,
@@ -20,13 +20,10 @@ torch::Tensor allocate_transpose_workspace(
         torch::Tensor output_column_indices
     ) {
 
-    cusparseHandle_t handle = NULL;
-    CUSPARSE_CALL(cusparseCreate(&handle));
-
     // Calculate the buffer size.
     size_t buffer_size = 0;
     CUSPARSE_CALL(cusparseCsr2cscEx2_bufferSize(
-        handle, m, n, nonzeros, 
+        *handle, m, n, nonzeros, 
         values.data_ptr<float>(), 
         row_offsets.data_ptr<int>(),
         column_indices.data_ptr<int>(), 
@@ -45,8 +42,6 @@ torch::Tensor allocate_transpose_workspace(
 
     torch::Tensor workspace = torch::zeros(buffer_size_signed, options);
 
-    cusparseDestroy(handle);
-
     return workspace;
 }
 
@@ -56,11 +51,18 @@ void csr_transpose(int m, int n, int nonzeros,
                    torch::Tensor column_indices,
                    torch::Tensor output_values,
                    torch::Tensor output_row_offsets,
-                   torch::Tensor output_column_indices,
-                   torch::Tensor workspace) {
+                   torch::Tensor output_column_indices) {
 
     cusparseHandle_t handle = NULL;
     CUSPARSE_CALL(cusparseCreate(&handle));
+
+    torch::Tensor workspace = allocate_transpose_workspace(&handle, m, n, nonzeros, 
+                                                          values, 
+                                                          row_offsets, 
+                                                          column_indices, 
+                                                          output_values, 
+                                                          output_row_offsets, 
+                                                          output_column_indices);
 
     // Launch the kernel.
     CUSPARSE_CALL(cusparseCsr2cscEx2(
@@ -73,4 +75,7 @@ void csr_transpose(int m, int n, int nonzeros,
         output_column_indices.data_ptr<int>(),
         CUDA_R_32F, CUSPARSE_ACTION_NUMERIC, CUSPARSE_INDEX_BASE_ZERO,
         CUSPARSE_CSR2CSC_ALG1, workspace.data_ptr<float>()));
+
+    cusparseDestroy(handle);
+    cudaDeviceSynchronize();
 }

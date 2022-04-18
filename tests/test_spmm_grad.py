@@ -20,6 +20,10 @@ class Spmm(torch.autograd.Function):
         n = ctx.n
         nnz = ctx.nnz
         out = torch_sputnik.sddmm(m, k, n, nnz, row_indices, row_offsets, column_indices, grad_output, b, values)
+
+        #values_t, row_offsets_t, column_indices_t = torch_sputnik.csr_transpose(m, k, values, row_offsets, column_indices)
+        #row_indices_t = diffsort(row_offsets_t)
+
         return None, None, None, None, None, out, None, None, None, None
 
 def dense_to_sparse(matrix):

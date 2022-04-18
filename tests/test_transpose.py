@@ -19,31 +19,27 @@ def transpose(m, k, n, nnz):
     b = torch.arange(1, nnz + 1, dtype=torch.float32).view(m, k)
     out_values, out_row_indices, out_row_offsets, out_column_indices = dense_to_sparse(b)
 
-    c = torch.arange(1, nnz + 1, dtype=torch.float32).view(m, k)
-    transpose_out_values, transpose_out_row_indices, transpose_out_row_offsets, transpose_out_column_indices = dense_to_sparse(b)
-
-    workspace = torch_sputnik.allocate_transpose_workspace(m, n, nnz, values, row_offsets, column_indices, transpose_out_values, transpose_out_row_offsets, transpose_out_column_indices)
-
     print('Before transpose:')
-    print(column_indices.size())
-    print(column_indices)
+    #print(column_indices.size())
+    #print(column_indices)
 
-    print(row_offsets.size())
-    print(row_offsets)\
+    #print(row_offsets.size())
+    #print(row_offsets)\
     
     print(values.size())
+    print(values)
     
-    torch_sputnik.csr_transpose(m, n, nnz, values, row_offsets, column_indices, transpose_out_values, transpose_out_row_offsets, transpose_out_column_indices, workspace)
+    torch_sputnik.csr_transpose(m, n, nnz, values, row_offsets, column_indices, out_values, out_row_offsets, out_column_indices)
     
     print('\nAfter transpose:')
-    print(transpose_out_column_indices.size())
-    print(transpose_out_column_indices)
+    #print(transpose_out_column_indices.size())
+    #print(transpose_out_column_indices)
 
-    print(transpose_out_row_offsets.size())
-    print(transpose_out_row_offsets)
+    #print(transpose_out_row_offsets.size())
+    #print(transpose_out_row_offsets)
 
-    print(transpose_out_values.size())
-    print(transpose_out_values)
+    print(out_values.size())
+    print(out_values)
 
 if __name__ == "__main__":
     transpose(8, 8, 8, 64)
