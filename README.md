@@ -6,7 +6,7 @@
 
 * &#9989; Write Python bindings for SpMM with Pytorch tensors.
 * &#9989; Write Python bindings for SDDMM with Pytorch tensors.
-* Wrap SpMM and SDDMM with **torch.autograd.Function** and **torch.nn.Module** to make them first class citizens of PyTorch.
+* Wrap SpMM and SDDMM with **torch.autograd.Function** to make them first class citizens of PyTorch.
 
 ```Python
 import sputnik
@@ -55,7 +55,7 @@ Sparse implementation:
 
 * &#9989; Implement csr softmax (to avoid sparse to dense conversion in sparse dot product attention)
 
-* Implement csr transposition (we need it to calculate the gradient of both spmm and sddmm)
+* &#9989; Implement csr transposition (we need it to calculate the gradient of both spmm and sddmm)
 
 ```Python
 def _spmm_grad(op, grad):
