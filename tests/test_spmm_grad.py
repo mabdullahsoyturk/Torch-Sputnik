@@ -8,17 +8,17 @@ def diffsort(offsets):
 
 class Spmm(torch.autograd.Function):
     @staticmethod
-    def forward(ctx, m, k, n, nnz, row_indices, values, row_offsets, column_indices, b, c):
+    def forward(ctx, m, k, n, nnz, row_indices, values, row_offsets, column_indices, b, bias, c):
         ctx.m = m
         ctx.k = k
         ctx.n = n
         ctx.nnz = nnz
-        ctx.save_for_backward(values, row_indices, row_offsets, column_indices, b)
-        return torch_sputnik.spmm(m, k, n, nnz, row_indices, values, row_offsets, column_indices, b, c)
+        ctx.save_for_backward(values, row_indices, row_offsets, column_indices, b, bias)
+        return torch_sputnik.spmm(m, k, n, nnz, row_indices, values, row_offsets, column_indices, b, bias, c)
 
     @staticmethod
     def backward(ctx, grad_output):
-        values, row_indices, row_offsets, column_indices, b, = ctx.saved_tensors
+        values, row_indices, row_offsets, column_indices, b, bias = ctx.saved_tensors
         m = ctx.m
         k = ctx.k
         n = ctx.n
@@ -32,10 +32,9 @@ class Spmm(torch.autograd.Function):
         torch_sputnik.csr_transpose(m, n, nnz, values, row_offsets, column_indices, values_t, row_offsets_t, column_indices_t)
         row_indices_t = diffsort(row_offsets_t)
 
-        #m, k, n, nnz, row_indices, values, row_offsets, column_indices, b, c
-        dense_matrix_grad = torch_sputnik.spmm(k, m, n, nnz, row_indices_t, values_t, row_offsets_t, column_indices_t, b, grad_output)
+        dense_matrix_grad = torch_sputnik.spmm(k, m, n, nnz, row_indices_t, values_t, row_offsets_t, column_indices_t, b, bias, grad_output)
 
-        return None, None, None, None, None, sparse_matrix_grad, None, None, dense_matrix_grad, None
+        return None, None, None, None, None, sparse_matrix_grad, None, None, dense_matrix_grad, None, None
 
 def dense_to_sparse(matrix):
      """Converts dense numpy matrix to a csr sparse matrix."""
@@ -56,6 +55,7 @@ n = 8
 x = torch.arange(1, nnz + 1, dtype=torch.float32).view(m, k)
 values, row_indices, row_offsets, column_indices = dense_to_sparse(x)
 y = torch.arange(1, nnz + 1, dtype=torch.float32, device=device, requires_grad=False).view(k, n)
+bias = torch.zeros((n), dtype=torch.float32, device=device)
 z = torch.arange(1, nnz + 1, dtype=torch.float32, device=device, requires_grad=False).view(k, n)
 
 correct_result = torch.arange(1, nnz + 1, dtype=torch.float32, device=device).view(k, n)
@@ -65,7 +65,7 @@ P3 = Spmm.apply
 
 # Forward pass: compute predicted y using operations; we compute
 # P3 using our custom autograd operation.
-y_pred = P3(m, k, n, nnz, row_indices, values, row_offsets, column_indices, y, z)
+y_pred = P3(m, k, n, nnz, row_indices, values, row_offsets, column_indices, y, bias, z)
 
 # Compute and print loss
 print(y_pred - correct_result)

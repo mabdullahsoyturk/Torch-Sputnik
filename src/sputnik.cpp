@@ -7,6 +7,7 @@ torch::Tensor spmm(int m, int k, int n, int nonzeros,
                     torch::Tensor row_offsets, 
                     torch::Tensor column_indices,
                     torch::Tensor dense_matrix,
+                    torch::Tensor bias,
                     torch::Tensor output_matrix);
 
 torch::Tensor sddmm(int m, int k, int n, int nonzeros,
