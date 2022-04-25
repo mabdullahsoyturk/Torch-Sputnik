@@ -17,22 +17,15 @@ torch::Tensor spmm(int m, int k, int n, int nonzeros,
                torch::Tensor output_matrix) {
     at::cuda::CUDAStream torch_stream = at::cuda::getCurrentCUDAStream();
     cudaStream_t stream = torch_stream.stream();
-    float* _values = values.data_ptr<float>();
-    int* _row_indices = row_indices.data_ptr<int>();
-    int* _row_offsets = row_offsets.data_ptr<int>();
-    int* _column_indices = column_indices.data_ptr<int>();
-    float* _dense_matrix = dense_matrix.data_ptr<float>();
-    float* _bias = bias.data_ptr<float>();
-    float* _output_matrix = output_matrix.data_ptr<float>();
-
+    
     CUDA_CALL(sputnik::CudaSpmmBiasRelu(m, k, n, nonzeros, 
-                                _row_indices, 
-                                _values,
-                                _row_offsets, 
-                                _column_indices,
-                                _dense_matrix,
-                                _bias, 
-                                _output_matrix, 
+                                row_indices.data_ptr<int>(), 
+                                values.data_ptr<float>(),
+                                row_offsets.data_ptr<int>(), 
+                                column_indices.data_ptr<int>(),
+                                dense_matrix.data_ptr<float>(),
+                                bias.data_ptr<float>(), 
+                                output_matrix.data_ptr<float>(), 
                                 stream));
     cudaDeviceSynchronize();
     
