@@ -18,7 +18,7 @@ torch::Tensor replicated_spmm(int replication, int m, int k, int n, int nonzeros
     at::cuda::CUDAStream torch_stream = at::cuda::getCurrentCUDAStream();
     cudaStream_t stream = torch_stream.stream();
 
-    for(int idx = 0; idx < replicaton; idx++) {
+    for(int idx = 0; idx < replication; idx++) {
         CUDA_CALL(sputnik::CudaSpmmBiasRelu(m, k, n, nonzeros, 
                                 row_indices.data_ptr<int>(), 
                                 values.data_ptr<float>() + nonzeros * idx,
