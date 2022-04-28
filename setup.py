@@ -15,6 +15,7 @@ setup(
             'src/spmm_cuda.cu',
             'src/replicated_spmm_cuda.cu',
             'src/sddmm_cuda.cu',
+            'src/replicated_sddmm_cuda.cu',
             'src/softmax_cuda.cu',
             'src/transpose_cuda.cu'
         ],

@@ -33,7 +33,7 @@ def tensor_spmm(m, k, n, nnz):
 
     result = torch_sputnik.replicated_spmm(2, m, k, n, nnz, c_row_indices, c_values, c_row_offsets, c_column_indices, b, bias, c)
 
-    print(result)
+    print(result.size())
 
 if __name__ == "__main__":
     tensor_spmm(8, 8, 8, 64)

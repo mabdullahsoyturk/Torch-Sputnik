@@ -15,13 +15,23 @@ def dense_to_sparse(matrix):
 def tensor_sddmm(m, k, n, nnz):
     a = torch.arange(1, nnz + 1, dtype=torch.float32).view(m, k)
     values, row_indices, row_offsets, column_indices = dense_to_sparse(a)
+    b = torch.arange(nnz + 1, (2 * nnz) + 1, dtype=torch.float32).view(m, k)
+    values2, row_indices2, row_offsets2, column_indices2 = dense_to_sparse(b)
 
-    lhs_matrix = torch.arange(1,nnz + 1).view(k, n).cuda().to(torch.float32)
+    c_values = torch.cat((values, values2))
+    c_row_indices = torch.cat((row_indices, row_indices2))
+    c_row_offsets = torch.cat((row_offsets, row_offsets2))
+    c_column_indices = torch.cat((column_indices, column_indices2))
+    print(values)
+    print(values2)
+    print(c_values.view(2, 8, 8).size())
+
+    lhs_matrix = torch.arange(1, (2 * nnz) + 1).view(2, k, n).cuda().to(torch.float32)
     print(lhs_matrix)
-    rhs_matrix = torch.arange(1,nnz + 1).view(k, n).cuda().to(torch.float32)
+    rhs_matrix = torch.arange(1, (2 * nnz) + 1).view(2, k, n).cuda().to(torch.float32)
     print(rhs_matrix)
 
-    output_values = torch_sputnik.sddmm(m, k, n, nnz, row_indices, row_offsets, column_indices, lhs_matrix, rhs_matrix, values)
+    output_values = torch_sputnik.replicated_sddmm(2, m, k, n, nnz, c_row_indices, c_row_offsets, c_column_indices, lhs_matrix, rhs_matrix, c_values).view(2, m, n)
 
     print(output_values.size())
     print(output_values)
