@@ -6,9 +6,9 @@ def dense_to_sparse(matrix):
      """Converts dense numpy matrix to a csr sparse matrix."""
      csr = matrix.to_sparse_csr()
      values = csr.values().clone()
-     row_offsets = csr.crow_indices().clone().to(torch.int32)
+     row_offsets = csr.crow_indices().detach().to(torch.int32)
      row_indices = torch.from_numpy(np.argsort(-1 * np.diff(row_offsets.detach().numpy()))).to(torch.int32)
-     column_indices = csr.col_indices().clone().to(torch.int32)
+     column_indices = csr.col_indices().detach().to(torch.int32)
 
      return values.cuda(), row_indices.cuda(), row_offsets.cuda(), column_indices.cuda()
 
