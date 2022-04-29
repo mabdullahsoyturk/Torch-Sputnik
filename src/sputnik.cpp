@@ -7,8 +7,7 @@ torch::Tensor spmm(int m, int k, int n, int nonzeros,
                     torch::Tensor row_offsets, 
                     torch::Tensor column_indices,
                     torch::Tensor dense_matrix,
-                    torch::Tensor bias,
-                    torch::Tensor output_matrix);
+                    torch::Tensor bias);
 
 torch::Tensor replicated_spmm(int replication, int m, int k, int n, int nonzeros,
                torch::Tensor row_indices, 
@@ -16,8 +15,7 @@ torch::Tensor replicated_spmm(int replication, int m, int k, int n, int nonzeros
                torch::Tensor row_offsets, 
                torch::Tensor column_indices,
                torch::Tensor dense_matrix, 
-               torch::Tensor bias,
-               torch::Tensor output_matrix);
+               torch::Tensor bias);
 
 torch::Tensor sddmm(int m, int k, int n, int nonzeros,
                     torch::Tensor row_indices,

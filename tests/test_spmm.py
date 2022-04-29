@@ -18,9 +18,8 @@ def tensor_spmm(m, k, n, nnz):
 
     b = torch.arange(1,nnz + 1).view(k, n).cuda().to(torch.float32)
     bias = torch.zeros((n)).cuda()
-    c = torch.zeros((m, n)).cuda()
 
-    result = torch_sputnik.spmm(m, k, n, nnz, row_indices, values, row_offsets, column_indices, b, bias, c)
+    result = torch_sputnik.spmm(m, k, n, nnz, row_indices, values, row_offsets, column_indices, b, bias)
 
     print(result)
 

@@ -11,12 +11,21 @@
   } while (0)
 
 torch::Tensor spmm(int m, int k, int n, int nonzeros,
-               torch::Tensor row_indices, torch::Tensor values,
-               torch::Tensor row_offsets, torch::Tensor column_indices,
-               torch::Tensor dense_matrix, torch::Tensor bias,
-               torch::Tensor output_matrix) {
+               torch::Tensor row_indices, 
+               torch::Tensor values,
+               torch::Tensor row_offsets, 
+               torch::Tensor column_indices,
+               torch::Tensor dense_matrix, 
+               torch::Tensor bias) {
     at::cuda::CUDAStream torch_stream = at::cuda::getCurrentCUDAStream();
     cudaStream_t stream = torch_stream.stream();
+
+    auto options = torch::TensorOptions()
+                                        .dtype(torch::kFloat32)
+                                        .layout(torch::kStrided)
+                                        .device(torch::kCUDA, 0)
+                                        .requires_grad(true);
+    torch::Tensor out = torch::zeros({m, n}, options);
     
     CUDA_CALL(sputnik::CudaSpmmBiasRelu(m, k, n, nonzeros, 
                                 row_indices.data_ptr<int>(), 
@@ -25,9 +34,9 @@ torch::Tensor spmm(int m, int k, int n, int nonzeros,
                                 column_indices.data_ptr<int>(),
                                 dense_matrix.data_ptr<float>(),
                                 bias.data_ptr<float>(), 
-                                output_matrix.data_ptr<float>(), 
+                                out.data_ptr<float>(), 
                                 stream));
     cudaDeviceSynchronize();
     
-    return output_matrix;
+    return out;
 }
