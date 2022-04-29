@@ -16,8 +16,8 @@ class Sddmm(torch.autograd.Function):
         ctx.row_indices = row_indices
         ctx.row_offsets = row_offsets
         ctx.column_indices = column_indices
-        ctx.save_for_backward(values, lhs_matrix, rhs_matrix)
-        return torch_sputnik.sddmm(m, k, n, nnz, row_indices, values, row_offsets, column_indices, lhs_matrix, bias, rhs_matrix)
+        ctx.save_for_backward(lhs_matrix, rhs_matrix)
+        return torch_sputnik.sddmm(m, k, n, nnz, row_indices, row_offsets, column_indices, lhs_matrix, rhs_matrix, values)
 
     @staticmethod
     def backward(ctx, grad_output):
@@ -28,25 +28,28 @@ class Sddmm(torch.autograd.Function):
         row_indices = ctx.row_indices
         row_offsets = ctx.row_offsets
         column_indices = ctx.column_indices
-        bias = torch.Tensor([])
-        values, lhs_matrix, rhs_matrix = ctx.saved_tensors
+        lhs_matrix, rhs_matrix = ctx.saved_tensors
 
         grad_m = grad_k = grad_n = grad_nnz = grad_row_indices = grad_row_offsets = grad_column_indices = grad_lhs = grad_rhs = grad_values = None
-        grad_values = torch_sputnik.spmm(m, k, n, nnz, row_indices, grad_output, row_offsets, column_indices, rhs, bias, rhs)
+        
 
-        values_t = values.clone()
+        bias = torch.Tensor([])
+        # lhs grad
+        grad_lhs = torch_sputnik.spmm(m, k, n, nnz, row_indices, grad_output, row_offsets, column_indices, rhs_matrix, bias)
+
+        grad_t = grad_output.clone()
         row_offsets_t = row_offsets.clone()
         column_indices_t = column_indices.clone()
 
-        torch_sputnik.csr_transpose(m, n, nnz, values, row_offsets, column_indices, values_t, row_offsets_t, column_indices_t)
+        torch_sputnik.csr_transpose(m, n, nnz, grad_output, row_offsets, column_indices, grad_t, row_offsets_t, column_indices_t)
         row_indices_t = diffsort(row_offsets_t)
-
-        grad_b = torch.zeros_like(b)
-        grad_b = torch_sputnik.spmm(k, m, n, nnz, row_indices_t, values_t, row_offsets_t, column_indices_t, grad_output, bias, grad_b)
+        
+        # rhs grad
+        grad_rhs = torch_sputnik.spmm(n, k, m, nnz, row_indices_t, grad_t, row_offsets_t, column_indices_t, lhs_matrix, bias)
         #print("dense matrix grad:")
         #print(out)
 
-        return grad_m, grad_k, grad_n, grad_nnz, grad_row_indices, grad_values, grad_row_offsets, grad_column_indices, grad_b, grad_bias, grad_c
+        return grad_m, grad_k, grad_n, grad_nnz, grad_row_indices, grad_row_offsets, grad_column_indices, grad_lhs, grad_rhs, grad_values
 
 def dense_to_sparse(matrix):
      """Converts dense numpy matrix to a csr sparse matrix."""
@@ -71,12 +74,14 @@ lhs = torch.arange(1, nnz + 1, dtype=torch.float32, device=device).view(k, n).re
 bias = torch.zeros((n), dtype=torch.float32, device=device)
 rhs = torch.arange(1, nnz + 1, dtype=torch.float32, device=device).view(k, n).requires_grad_()
 
+correct_result = torch.arange(1, nnz + 1, dtype=torch.float32, device=device).view(k, n)
+
 # To apply our Function, we use Function.apply method. We alias this as 'P3'.
 P3 = Sddmm.apply
 
 # Forward pass: compute predicted y using operations; we compute
 # P3 using our custom autograd operation.
-y_pred = P3(m, k, n, nnz, row_indices, values, row_offsets, column_indices, y, bias, z)
+y_pred = P3(m, k, n, nnz, row_indices, row_offsets, column_indices, lhs, rhs, values).view(m, n)
 
 # Compute and print loss
 print(y_pred - correct_result)
@@ -84,7 +89,6 @@ loss = (y_pred - correct_result).pow(2).sum()
 print(loss.item())
 
 # Use autograd to compute the backward pass.
-print(f'Before: {values.grad}')
 loss.backward()
-print(f'After: {values.grad}')
-print(f'After: {y.grad}')
+print(f'After: {lhs.grad}')
+print(f'After: {rhs.grad}')
