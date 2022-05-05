@@ -8,7 +8,7 @@ def diffsort(offsets):
 
 class Spmm(torch.autograd.Function):
     @staticmethod
-    def forward(ctx, m, k, n, nnz, row_indices, values, row_offsets, column_indices, b, bias):
+    def forward(ctx, m, k, n, nnz, row_indices, values, row_offsets, column_indices, b):
         ctx.m = m
         ctx.k = k
         ctx.n = n
@@ -16,9 +16,8 @@ class Spmm(torch.autograd.Function):
         ctx.row_indices = row_indices
         ctx.row_offsets = row_offsets
         ctx.column_indices = column_indices
-        ctx.bias = bias
         ctx.save_for_backward(values, b)
-        return torch_sputnik.spmm(m, k, n, nnz, row_indices, values, row_offsets, column_indices, b, bias)
+        return torch_sputnik.spmm(m, k, n, nnz, row_indices, values, row_offsets, column_indices, b)
 
     @staticmethod
     def backward(ctx, grad_output):
@@ -29,10 +28,9 @@ class Spmm(torch.autograd.Function):
         row_indices = ctx.row_indices
         row_offsets = ctx.row_offsets
         column_indices = ctx.column_indices
-        bias = ctx.bias
         values, b = ctx.saved_tensors
 
-        grad_m = grad_k = grad_n = grad_nnz = grad_row_indices = grad_values = grad_row_offsets = grad_column_indices = grad_b = grad_bias = None
+        grad_m = grad_k = grad_n = grad_nnz = grad_row_indices = grad_values = grad_row_offsets = grad_column_indices = grad_b = None
         grad_values = torch_sputnik.sddmm(m, k, n, nnz, row_indices, row_offsets, column_indices, grad_output, b, values)
 
         values_t = values.clone()
@@ -42,10 +40,9 @@ class Spmm(torch.autograd.Function):
         torch_sputnik.csr_transpose(m, n, nnz, values, row_offsets, column_indices, values_t, row_offsets_t, column_indices_t)
         row_indices_t = diffsort(row_offsets_t)
 
-        grad_b = torch.zeros_like(b)
         grad_b = torch_sputnik.spmm(k, m, n, nnz, row_indices_t, values_t, row_offsets_t, column_indices_t, grad_output, bias)
 
-        return grad_m, grad_k, grad_n, grad_nnz, grad_row_indices, grad_values, grad_row_offsets, grad_column_indices, grad_b, grad_bias
+        return grad_m, grad_k, grad_n, grad_nnz, grad_row_indices, grad_values, grad_row_offsets, grad_column_indices, grad_b
 
 def dense_to_sparse(matrix):
      """Converts dense numpy matrix to a csr sparse matrix."""

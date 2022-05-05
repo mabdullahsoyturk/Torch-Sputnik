@@ -23,9 +23,7 @@ def tensor_sddmm(m, k, n, nnz):
 
     output_values = torch_sputnik.sddmm(m, k, n, nnz, row_indices, row_offsets, column_indices, lhs_matrix, rhs_matrix, values)
 
-    print(output_values)
-
-    softmax_output = torch_sputnik.softmax(m, n, nnz, output_values, row_indices, row_offsets, column_indices, output_values)
+    softmax_output = torch_sputnik.softmax(m, n, nnz, output_values, row_indices, row_offsets, column_indices)
     print(softmax_output)
 
 if __name__ == "__main__":

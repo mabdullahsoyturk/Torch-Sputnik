@@ -6,16 +6,14 @@ torch::Tensor spmm(int m, int k, int n, int nonzeros,
                     torch::Tensor row_indices,
                     torch::Tensor row_offsets, 
                     torch::Tensor column_indices,
-                    torch::Tensor dense_matrix,
-                    torch::Tensor bias);
+                    torch::Tensor dense_matrix);
 
 torch::Tensor replicated_spmm(int replication, int m, int k, int n, int nonzeros,
-               torch::Tensor row_indices, 
-               torch::Tensor values,
-               torch::Tensor row_offsets, 
-               torch::Tensor column_indices,
-               torch::Tensor dense_matrix, 
-               torch::Tensor bias);
+                    torch::Tensor row_indices, 
+                    torch::Tensor values,
+                    torch::Tensor row_offsets, 
+                    torch::Tensor column_indices,
+                    torch::Tensor dense_matrix);
 
 torch::Tensor sddmm(int m, int k, int n, int nonzeros,
                     torch::Tensor row_indices,
@@ -37,8 +35,7 @@ torch::Tensor softmax(int m, int n, int nonzeros,
                     torch::Tensor values,
                     torch::Tensor row_indices,
                     torch::Tensor row_offsets,
-                    torch::Tensor column_indices,
-                    torch::Tensor output_values);
+                    torch::Tensor column_indices);
 
 void csr_transpose(
                    int m, int n, int nonzeros,

@@ -14,19 +14,25 @@ torch::Tensor softmax(int m, int n, int nonzeros,
                       torch::Tensor values,
                       torch::Tensor row_indices,
                       torch::Tensor row_offsets,
-                      torch::Tensor column_indices,
-                      torch::Tensor output_values) {
+                      torch::Tensor column_indices) {
     at::cuda::CUDAStream torch_stream = at::cuda::getCurrentCUDAStream();
     cudaStream_t stream = torch_stream.stream();
+
+    auto options = torch::TensorOptions()
+                                        .dtype(torch::kFloat32)
+                                        .layout(torch::kStrided)
+                                        .device(torch::kCUDA, 0)
+                                        .requires_grad(true);
+    torch::Tensor out = torch::zeros({m, n}, options);
 
     CUDA_CALL(sputnik::SparseSoftmax(m, n, nonzeros, 
                                 values.data_ptr<float>(),
                                 row_indices.data_ptr<int>(), 
                                 row_offsets.data_ptr<int>(), 
                                 column_indices.data_ptr<int>(),
-                                output_values.data_ptr<float>(), 
+                                out.data_ptr<float>(), 
                                 stream));
     cudaDeviceSynchronize();
     
-    return output_values;
+    return out;
 }

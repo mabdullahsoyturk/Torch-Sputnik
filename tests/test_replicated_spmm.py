@@ -76,9 +76,7 @@ def tensor_spmm(m, k, n, nnz):
     """
     dense = torch.arange(1, 2 * (nnz + 1) - 1).view(2, k, n).cuda().to(torch.float32)
     #print(dense)
-    bias = torch.zeros((2, n)).cuda()
-
-    result = torch_sputnik.replicated_spmm(2, m, k, n, nnz, sparse_row_indices, sparse_values, sparse_row_offsets, sparse_column_indices, dense, bias)
+    result = torch_sputnik.replicated_spmm(2, m, k, n, nnz, sparse_row_indices, sparse_values, sparse_row_offsets, sparse_column_indices, dense)
 
     """
         Output Matrix: [
