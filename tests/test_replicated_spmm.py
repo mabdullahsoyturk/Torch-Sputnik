@@ -17,10 +17,10 @@ def tensor_spmm(m, k, n, nnz):
     values, row_indices, row_offsets, column_indices = dense_to_sparse(a)
     b = torch.arange(nnz + 1, (2 * nnz) + 1, dtype=torch.float32).view(m, k)
     values2, row_indices2, row_offsets2, column_indices2 = dense_to_sparse(b)
-    sparse_values = torch.cat((values, values2))
-    sparse_row_indices = torch.cat((row_indices, row_indices2))
-    sparse_row_offsets = torch.cat((row_offsets, row_offsets2))
-    sparse_column_indices = torch.cat((column_indices, column_indices2))
+    sparse_values = torch.stack((values, values2))
+    sparse_row_indices = torch.stack((row_indices, row_indices2))
+    sparse_row_offsets = torch.stack((row_offsets, row_offsets2))
+    sparse_column_indices = torch.stack((column_indices, column_indices2))
 
     """
         Sparse Matrix: [
@@ -76,7 +76,7 @@ def tensor_spmm(m, k, n, nnz):
     """
     dense = torch.arange(1, 2 * (nnz + 1) - 1).view(2, k, n).cuda().to(torch.float32)
     #print(dense)
-    result = torch_sputnik.replicated_spmm(2, m, k, n, nnz, sparse_row_indices, sparse_values, sparse_row_offsets, sparse_column_indices, dense)
+    result = torch_sputnik.spmm(m, k, n, nnz, sparse_row_indices, sparse_values, sparse_row_offsets, sparse_column_indices, dense)
 
     """
         Output Matrix: [

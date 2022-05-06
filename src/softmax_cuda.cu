@@ -18,20 +18,26 @@ torch::Tensor softmax(int m, int n, int nonzeros,
     at::cuda::CUDAStream torch_stream = at::cuda::getCurrentCUDAStream();
     cudaStream_t stream = torch_stream.stream();
 
+    int dim_offset = values.dim() - 1;
+    int replication = dim_offset == 1 ? values.size(0) : 1;
+
     auto options = torch::TensorOptions()
                                         .dtype(torch::kFloat32)
                                         .layout(torch::kStrided)
                                         .device(torch::kCUDA, 0)
                                         .requires_grad(true);
-    torch::Tensor out = torch::zeros({m, n}, options);
+    torch::Tensor out = torch::zeros_like(values, options);
 
-    CUDA_CALL(sputnik::SparseSoftmax(m, n, nonzeros, 
-                                values.data_ptr<float>(),
-                                row_indices.data_ptr<int>(), 
-                                row_offsets.data_ptr<int>(), 
-                                column_indices.data_ptr<int>(),
-                                out.data_ptr<float>(), 
-                                stream));
+    for (int idx = 0; idx < replication; ++idx) {
+      CUDA_CALL(sputnik::SparseSoftmax(m, n, nonzeros, 
+                                values.data_ptr<float>() + nonzeros * idx,
+                                row_indices.data_ptr<int>() + m * idx, 
+                                row_offsets.data_ptr<int>() + (m + 1) * idx, 
+                                column_indices.data_ptr<int>() + nonzeros * idx,
+                                out.data_ptr<float>() + nonzeros * idx, 
+                                stream));      
+    }
+
     cudaDeviceSynchronize();
     
     return out;

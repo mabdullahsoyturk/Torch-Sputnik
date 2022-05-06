@@ -24,16 +24,22 @@ torch::Tensor spmm(int m, int k, int n, int nonzeros,
                                         .layout(torch::kStrided)
                                         .device(torch::kCUDA, 0)
                                         .requires_grad(true);
-    torch::Tensor out = torch::zeros({m, n}, options);
+    int dim_offset = dense_matrix.dim() - 2;
+    int replication = dim_offset == 1 ? dense_matrix.size(0) : 1;
+
+    torch::Tensor out = torch::zeros({replication, m, n}, options);
     
-    CUDA_CALL(sputnik::CudaSpmm(m, k, n, nonzeros, 
-                                row_indices.data_ptr<int>(), 
-                                values.data_ptr<float>(),
-                                row_offsets.data_ptr<int>(), 
-                                column_indices.data_ptr<int>(),
-                                dense_matrix.data_ptr<float>(),
-                                out.data_ptr<float>(), 
-                                stream));
+    for (int idx = 0; idx < replication; ++idx) {
+      CUDA_CALL(sputnik::CudaSpmm(m, k, n, nonzeros, 
+                                  row_indices.data_ptr<int>() + m * idx, 
+                                  values.data_ptr<float>() + nonzeros * idx,
+                                  row_offsets.data_ptr<int>() + (m + 1) * idx, 
+                                  column_indices.data_ptr<int>() + nonzeros * idx,
+                                  dense_matrix.data_ptr<float>() + k * n * idx,
+                                  out.data_ptr<float>() + m * n * idx, 
+                                  stream));
+    }
+
     cudaDeviceSynchronize();
     
     return out;
