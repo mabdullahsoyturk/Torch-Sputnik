@@ -13,7 +13,9 @@ setup(
         CUDAExtension('torch_sputnik', [
             'src/sputnik.cpp',
             'src/spmm_cuda.cu',
+            'src/spmm_cuda_graph.cu',
             'src/sddmm_cuda.cu',
+            'src/sddmm_cuda_graph.cu',
             'src/softmax_cuda.cu',
             'src/transpose_cuda.cu'
         ],

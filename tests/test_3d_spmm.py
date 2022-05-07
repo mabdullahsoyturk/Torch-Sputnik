@@ -32,7 +32,7 @@ class Spmm(torch.autograd.Function):
         grad_m = grad_k = grad_n = grad_nnz = grad_row_indices = grad_values = grad_row_offsets = grad_column_indices = grad_b = None
 
         # sparse matrix grad 
-        grad_values = torch_sputnik.sddmm(m, k, n, nnz, row_indices, row_offsets, column_indices, grad_output, b, values)
+        grad_values = torch_sputnik.sddmm(m, k, n, nnz, row_indices, row_offsets, column_indices, grad_output, b)
 
         values_t = values.clone()
         row_offsets_t = row_offsets.clone()
@@ -48,7 +48,7 @@ class Spmm(torch.autograd.Function):
 
 class Sddmm(torch.autograd.Function):
     @staticmethod
-    def forward(ctx, m, k, n, nnz, row_indices, row_offsets, column_indices, lhs_matrix, rhs_matrix, values):
+    def forward(ctx, m, k, n, nnz, row_indices, row_offsets, column_indices, lhs_matrix, rhs_matrix):
         ctx.m = m
         ctx.k = k
         ctx.n = n
@@ -57,7 +57,7 @@ class Sddmm(torch.autograd.Function):
         ctx.row_offsets = row_offsets
         ctx.column_indices = column_indices
         ctx.save_for_backward(lhs_matrix, rhs_matrix)
-        return torch_sputnik.sddmm(m, k, n, nnz, row_indices, row_offsets, column_indices, lhs_matrix, rhs_matrix, values)
+        return torch_sputnik.sddmm(m, k, n, nnz, row_indices, row_offsets, column_indices, lhs_matrix, rhs_matrix)
 
     @staticmethod
     def backward(ctx, grad_output):
@@ -70,7 +70,7 @@ class Sddmm(torch.autograd.Function):
         column_indices = ctx.column_indices
         lhs_matrix, rhs_matrix = ctx.saved_tensors
 
-        grad_m = grad_k = grad_n = grad_nnz = grad_row_indices = grad_row_offsets = grad_column_indices = grad_lhs = grad_rhs = grad_values = None
+        grad_m = grad_k = grad_n = grad_nnz = grad_row_indices = grad_row_offsets = grad_column_indices = grad_lhs = grad_rhs = None
         
         # lhs grad
         grad_lhs = torch_sputnik.spmm(m, k, n, nnz, row_indices, grad_output, row_offsets, column_indices, rhs_matrix)
@@ -85,7 +85,7 @@ class Sddmm(torch.autograd.Function):
         # rhs grad
         grad_rhs = torch_sputnik.spmm(n, k, m, nnz, row_indices_t, grad_t, row_offsets_t, column_indices_t, lhs_matrix)
 
-        return grad_m, grad_k, grad_n, grad_nnz, grad_row_indices, grad_row_offsets, grad_column_indices, grad_lhs, grad_rhs, grad_values
+        return grad_m, grad_k, grad_n, grad_nnz, grad_row_indices, grad_row_offsets, grad_column_indices, grad_lhs, grad_rhs
 
 class SparseAttention(torch.nn.Module):
     def __init__(self, m, k, n, nnz, row_indices, values, row_offsets, column_indices, q3d, k3d, v3d):
@@ -113,8 +113,7 @@ class SparseAttention(torch.nn.Module):
                     self.row_offsets, 
                     self.column_indices, 
                     self.q3d, 
-                    self.k3d, 
-                    self.values
+                    self.k3d
                 )
 
         weights = torch_sputnik.softmax(

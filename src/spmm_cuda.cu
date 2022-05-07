@@ -13,16 +13,17 @@ torch::Tensor spmm(int m, int k, int n, int nonzeros,
     at::cuda::CUDAStream torch_stream = at::cuda::getCurrentCUDAStream();
     cudaStream_t stream = torch_stream.stream();
 
+    int dim_offset = dense_matrix.dim() - 2;
+    int replication = dim_offset == 1 ? dense_matrix.size(0) : 1;
+
     auto options = torch::TensorOptions()
                                         .dtype(torch::kFloat32)
                                         .layout(torch::kStrided)
                                         .device(torch::kCUDA, 0)
                                         .requires_grad(true);
-    int dim_offset = dense_matrix.dim() - 2;
-    int replication = dim_offset == 1 ? dense_matrix.size(0) : 1;
 
-    torch::Tensor out = torch::zeros({replication, m, n}, options);
-    
+    torch::Tensor out = replication == 1 ? torch::zeros({m, n}, options) : torch::zeros({replication, m, n}, options);
+
     for (int idx = 0; idx < replication; ++idx) {
       CUDA_CALL(sputnik::CudaSpmm(m, k, n, nonzeros, 
                                   row_indices.data_ptr<int>() + m * idx, 
