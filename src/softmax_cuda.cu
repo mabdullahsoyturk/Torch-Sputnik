@@ -32,7 +32,7 @@ torch::Tensor softmax(int m, int n, int nonzeros,
                                 stream));      
     }
 
-    cudaDeviceSynchronize();
+    cudaStreamSynchronize(stream);
     
     return out;
 }

@@ -34,7 +34,7 @@ torch::Tensor spmm(int m, int k, int n, int nonzeros,
                                   stream));
     }
 
-    cudaDeviceSynchronize();
+    cudaStreamSynchronize(stream);
     
     return out;
 }

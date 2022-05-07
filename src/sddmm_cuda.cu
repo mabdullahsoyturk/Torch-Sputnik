@@ -28,7 +28,7 @@ torch::Tensor sddmm(int m, int k, int n, int nonzeros,
                                 stream));
     }
     
-    cudaDeviceSynchronize();
+    cudaStreamSynchronize(stream);
     
     return output_values;
 }
