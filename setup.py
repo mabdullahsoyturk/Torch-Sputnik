@@ -13,13 +13,11 @@ setup(
         CUDAExtension('torch_sputnik', [
             'src/sputnik.cpp',
             'src/spmm_cuda.cu',
-            'src/replicated_spmm_cuda.cu',
             'src/sddmm_cuda.cu',
-            'src/replicated_sddmm_cuda.cu',
             'src/softmax_cuda.cu',
             'src/transpose_cuda.cu'
         ],
-        include_dirs=['/home/msoyturk/sputnik', '/cm/shared/apps/cuda11.3/toolkit/11.3.0/include'],
+        include_dirs=['/home/msoyturk/sputnik', '/cm/shared/apps/cuda11.3/toolkit/11.3.0/include', "/home/msoyturk/bind-sputnik/include"],
         library_dirs=['/home/msoyturk/bind-sputnik', '/cm/shared/apps/cuda11.3/toolkit/11.3.0/lib64'],
         libraries=['sputnik', 'cusparse'],
         extra_compile_args=extra_compile_args),

@@ -6,15 +6,15 @@
 
 * &#9989; Write Python bindings for SpMM with Pytorch tensors.
 * &#9989; Write Python bindings for SDDMM with Pytorch tensors.
-* Wrap SpMM and SDDMM with **torch.autograd.Function** to make them first class citizens of PyTorch.
+* &#9989; Wrap SpMM and SDDMM with **torch.autograd.Function** to make them first class citizens of PyTorch.
 
 ```Python
 import sputnik
 
 class MyLinearFunction(torch.autograd.Function):
     @staticmethod
-    def forward(ctx, input, weights, bias):
-        outputs = sputnik.forward(input, weights, bias)
+    def forward(ctx, input, weights):
+        outputs = sputnik.forward(input, weights)
         ctx.save_for_backward(*variables)
 
         return outputs
@@ -31,7 +31,7 @@ Original implementation:
 
 ```Python
   logits = matmul(q, k, transpose_b=True)
-  logits = add(logits, bias)
+  logits = add(logits)
   weights = softmax(logits)
   return matmul(weights, v)
 ```

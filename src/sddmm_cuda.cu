@@ -2,15 +2,9 @@
 #include <torch/extension.h>
 #include <ATen/ATen.h>
 #include <c10/cuda/CUDAStream.h>
+#include "error_check.h"
 
-#define CUDA_CALL(code)                                     \
-  do {                                                      \
-    cudaError_t status = code;                              \
-    std::string err = cudaGetErrorString(status);           \
-    CHECK_EQ(status, cudaSuccess) << "CUDA Error: " << err; \
-  } while (0)
-
- torch::Tensor sddmm(int m, int k, int n, int nonzeros,
+torch::Tensor sddmm(int m, int k, int n, int nonzeros,
                            torch::Tensor row_indices,
                            torch::Tensor row_offsets,
                            torch::Tensor column_indices,

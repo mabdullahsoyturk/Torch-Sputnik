@@ -2,13 +2,7 @@
 #include <torch/extension.h>
 #include <ATen/ATen.h>
 #include <c10/cuda/CUDAStream.h>
-
-#define CUDA_CALL(code)                                     \
-  do {                                                      \
-    cudaError_t status = code;                              \
-    std::string err = cudaGetErrorString(status);           \
-    CHECK_EQ(status, cudaSuccess) << "CUDA Error: " << err; \
-  } while (0)
+#include "error_check.h"
 
 torch::Tensor softmax(int m, int n, int nonzeros,
                       torch::Tensor values,

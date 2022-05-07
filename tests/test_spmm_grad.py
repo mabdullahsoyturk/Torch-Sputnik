@@ -1,10 +1,6 @@
 import torch
 import torch_sputnik
-import numpy as np
-
-def diffsort(offsets):
-  diffs = (offsets - torch.roll(offsets, -1, 0))[:-1]
-  return torch.argsort(diffs, descending=True).to(torch.int32)
+from utils.util import *
 
 class Spmm(torch.autograd.Function):
     @staticmethod
@@ -40,19 +36,9 @@ class Spmm(torch.autograd.Function):
         torch_sputnik.csr_transpose(m, n, nnz, values, row_offsets, column_indices, values_t, row_offsets_t, column_indices_t)
         row_indices_t = diffsort(row_offsets_t)
 
-        grad_b = torch_sputnik.spmm(k, m, n, nnz, row_indices_t, values_t, row_offsets_t, column_indices_t, grad_output, bias)
+        grad_b = torch_sputnik.spmm(k, m, n, nnz, row_indices_t, values_t, row_offsets_t, column_indices_t, grad_output)
 
         return grad_m, grad_k, grad_n, grad_nnz, grad_row_indices, grad_values, grad_row_offsets, grad_column_indices, grad_b
-
-def dense_to_sparse(matrix):
-     """Converts dense numpy matrix to a csr sparse matrix."""
-     csr = matrix.to_sparse_csr()
-     values = csr.values().clone()
-     row_offsets = csr.crow_indices().detach().to(torch.int32)
-     row_indices = torch.from_numpy(np.argsort(-1 * np.diff(row_offsets.detach().numpy()))).to(torch.int32)
-     column_indices = csr.col_indices().detach().to(torch.int32)
-
-     return values.cuda().requires_grad_(), row_indices.cuda(), row_offsets.cuda(), column_indices.cuda()
 
 device = torch.device("cuda:0")  # Uncomment this to run on GPU
 
@@ -63,7 +49,6 @@ n = 8
 x = torch.arange(1, nnz + 1, dtype=torch.float32).view(m, k)
 values, row_indices, row_offsets, column_indices = dense_to_sparse(x)
 y = torch.arange(1, nnz + 1, dtype=torch.float32, device=device).view(k, n).requires_grad_()
-bias = torch.zeros((n), dtype=torch.float32, device=device)
 
 correct_result = torch.arange(1, nnz + 1, dtype=torch.float32, device=device).view(k, n)
 
@@ -72,7 +57,7 @@ P3 = Spmm.apply
 
 # Forward pass: compute predicted y using operations; we compute
 # P3 using our custom autograd operation.
-y_pred = P3(m, k, n, nnz, row_indices, values, row_offsets, column_indices, y, bias)
+y_pred = P3(m, k, n, nnz, row_indices, values, row_offsets, column_indices, y)
 
 # Compute and print loss
 print(y_pred - correct_result)

@@ -1,10 +1,6 @@
 import torch
 import torch_sputnik
-import numpy as np
-
-def diffsort(offsets):
-  diffs = (offsets - torch.roll(offsets, -1, 0))[:-1]
-  return torch.argsort(diffs, descending=True).to(torch.int32)
+from utils.util import *
 
 class Sddmm(torch.autograd.Function):
     @staticmethod
@@ -32,10 +28,8 @@ class Sddmm(torch.autograd.Function):
 
         grad_m = grad_k = grad_n = grad_nnz = grad_row_indices = grad_row_offsets = grad_column_indices = grad_lhs = grad_rhs = grad_values = None
         
-
-        bias = torch.Tensor([])
         # lhs grad
-        grad_lhs = torch_sputnik.spmm(m, k, n, nnz, row_indices, grad_output, row_offsets, column_indices, rhs_matrix, bias)
+        grad_lhs = torch_sputnik.spmm(m, k, n, nnz, row_indices, grad_output, row_offsets, column_indices, rhs_matrix)
 
         grad_t = grad_output.clone()
         row_offsets_t = row_offsets.clone()
@@ -45,21 +39,11 @@ class Sddmm(torch.autograd.Function):
         row_indices_t = diffsort(row_offsets_t)
         
         # rhs grad
-        grad_rhs = torch_sputnik.spmm(n, k, m, nnz, row_indices_t, grad_t, row_offsets_t, column_indices_t, lhs_matrix, bias)
+        grad_rhs = torch_sputnik.spmm(n, k, m, nnz, row_indices_t, grad_t, row_offsets_t, column_indices_t, lhs_matrix)
         #print("dense matrix grad:")
         #print(out)
 
         return grad_m, grad_k, grad_n, grad_nnz, grad_row_indices, grad_row_offsets, grad_column_indices, grad_lhs, grad_rhs, grad_values
-
-def dense_to_sparse(matrix):
-     """Converts dense numpy matrix to a csr sparse matrix."""
-     csr = matrix.to_sparse_csr()
-     values = csr.values().clone()
-     row_offsets = csr.crow_indices().detach().to(torch.int32)
-     row_indices = torch.from_numpy(np.argsort(-1 * np.diff(row_offsets.detach().numpy()))).to(torch.int32)
-     column_indices = csr.col_indices().detach().to(torch.int32)
-
-     return values.cuda().requires_grad_(), row_indices.cuda(), row_offsets.cuda(), column_indices.cuda()
 
 device = torch.device("cuda:0")  # Uncomment this to run on GPU
 
@@ -71,7 +55,6 @@ x = torch.arange(1, nnz + 1, dtype=torch.float32).view(m, k)
 values, row_indices, row_offsets, column_indices = dense_to_sparse(x)
 
 lhs = torch.arange(1, nnz + 1, dtype=torch.float32, device=device).view(k, n).requires_grad_()
-bias = torch.zeros((n), dtype=torch.float32, device=device)
 rhs = torch.arange(1, nnz + 1, dtype=torch.float32, device=device).view(k, n).requires_grad_()
 
 correct_result = torch.arange(1, nnz + 1, dtype=torch.float32, device=device).view(k, n)

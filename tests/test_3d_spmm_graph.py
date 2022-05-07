@@ -14,7 +14,7 @@ class Spmm(torch.autograd.Function):
         ctx.column_indices = column_indices
         ctx.save_for_backward(values, b)
 
-        result = torch_sputnik.spmm(m, k, n, nnz, row_indices, values, row_offsets, column_indices, b)
+        result = torch_sputnik.spmm_graph(m, k, n, nnz, row_indices, values, row_offsets, column_indices, b)
         
         return result
 
@@ -42,7 +42,7 @@ class Spmm(torch.autograd.Function):
         row_indices_t = diffsort(row_offsets_t)
 
         # dense matrix grad
-        grad_b = torch_sputnik.spmm(k, m, n, nnz, row_indices_t, values_t, row_offsets_t, column_indices_t, grad_output)
+        grad_b = torch_sputnik.spmm_graph(k, m, n, nnz, row_indices_t, values_t, row_offsets_t, column_indices_t, grad_output)
 
         return grad_m, grad_k, grad_n, grad_nnz, grad_row_indices, grad_values, grad_row_offsets, grad_column_indices, grad_b
 
@@ -73,7 +73,7 @@ class Sddmm(torch.autograd.Function):
         grad_m = grad_k = grad_n = grad_nnz = grad_row_indices = grad_row_offsets = grad_column_indices = grad_lhs = grad_rhs = grad_values = None
         
         # lhs grad
-        grad_lhs = torch_sputnik.spmm(m, k, n, nnz, row_indices, grad_output, row_offsets, column_indices, rhs_matrix)
+        grad_lhs = torch_sputnik.spmm_graph(m, k, n, nnz, row_indices, grad_output, row_offsets, column_indices, rhs_matrix)
 
         grad_t = grad_output.clone()
         row_offsets_t = row_offsets.clone()
@@ -83,7 +83,7 @@ class Sddmm(torch.autograd.Function):
         row_indices_t = diffsort(row_offsets_t)
         
         # rhs grad
-        grad_rhs = torch_sputnik.spmm(n, k, m, nnz, row_indices_t, grad_t, row_offsets_t, column_indices_t, lhs_matrix)
+        grad_rhs = torch_sputnik.spmm_graph(n, k, m, nnz, row_indices_t, grad_t, row_offsets_t, column_indices_t, lhs_matrix)
 
         return grad_m, grad_k, grad_n, grad_nnz, grad_row_indices, grad_row_offsets, grad_column_indices, grad_lhs, grad_rhs, grad_values
 

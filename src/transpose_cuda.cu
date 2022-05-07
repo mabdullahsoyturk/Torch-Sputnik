@@ -3,12 +3,7 @@
 #include <ATen/ATen.h>
 #include <c10/cuda/CUDAStream.h>
 #include <cusparse.h>
-
-#define CUSPARSE_CALL(code)                                        \
-  do {                                                             \
-    cusparseStatus_t status = code;                                \
-    CHECK_EQ(status, CUSPARSE_STATUS_SUCCESS) << "CuSparse Error"; \
-  } while (0)
+#include "error_check.h"
 
 torch::Tensor allocate_transpose_workspace(cusparseHandle_t* handle,
         int m, int n, int nonzeros, 
