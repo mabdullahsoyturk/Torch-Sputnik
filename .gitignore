@@ -1,5 +1,7 @@
 torch_sputnik.cpython-39-x86_64-linux-gnu.so
+torch_sputnik.cpython-38-x86_64-linux-gnu.so
 build/
 libsputnik.so
 torch_sputnik.egg-info
 .vscode/
+utils/__pycache__/

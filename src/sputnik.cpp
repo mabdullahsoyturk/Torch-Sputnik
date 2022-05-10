@@ -1,42 +1,42 @@
 #include <torch/extension.h>
 
 // Forward Declaration
-torch::Tensor spmm(int m, int k, int n, int nonzeros,
+torch::Tensor spmm(int m, int k, int n,
                     torch::Tensor values, 
                     torch::Tensor row_indices,
                     torch::Tensor row_offsets, 
                     torch::Tensor column_indices,
                     torch::Tensor dense_matrix);
 
-torch::Tensor spmm_graph(int m, int k, int n, int nonzeros,
+torch::Tensor spmm_graph(int m, int k, int n,
                     torch::Tensor values, 
                     torch::Tensor row_indices,
                     torch::Tensor row_offsets, 
                     torch::Tensor column_indices,
                     torch::Tensor dense_matrix);
 
-torch::Tensor sddmm(int m, int k, int n, int nonzeros,
+torch::Tensor sddmm(int m, int k, int n,
                     torch::Tensor row_indices,
                     torch::Tensor row_offsets,
                     torch::Tensor column_indices,
                     torch::Tensor lhs_matrix,
                     torch::Tensor rhs_matrix);
 
-torch::Tensor sddmm_graph(int m, int k, int n, int nonzeros,
+torch::Tensor sddmm_graph(int m, int k, int n,
                     torch::Tensor row_indices,
                     torch::Tensor row_offsets,
                     torch::Tensor column_indices,
                     torch::Tensor lhs_matrix,
                     torch::Tensor rhs_matrix);
 
-torch::Tensor softmax(int m, int n, int nonzeros,
+torch::Tensor softmax(int m, int n,
                     torch::Tensor values,
                     torch::Tensor row_indices,
                     torch::Tensor row_offsets,
                     torch::Tensor column_indices);
 
 void csr_transpose(
-                   int m, int n, int nonzeros,
+                   int m, int n,
                    torch::Tensor values, 
                    torch::Tensor row_offsets,
                    torch::Tensor column_indices,

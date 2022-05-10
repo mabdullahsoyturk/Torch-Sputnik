@@ -19,11 +19,12 @@ setup(
             'src/softmax_cuda.cu',
             'src/transpose_cuda.cu'
         ],
-        include_dirs=['/home/msoyturk/sputnik', '/cm/shared/apps/cuda11.3/toolkit/11.3.0/include', "/home/msoyturk/bind-sputnik/include"],
-        library_dirs=['/home/msoyturk/bind-sputnik', '/cm/shared/apps/cuda11.3/toolkit/11.3.0/lib64'],
+        #library_dirs=['/home/soyturk/bind-sputnik'],
         libraries=['sputnik', 'cusparse'],
+        extra_link_args=['-L/usr/lib/x86_64-linux-gnu/'],
         extra_compile_args=extra_compile_args),
     ],
+    include_dirs=["./include", "/usr/local/sputnik/include"],
     cmdclass={
         'build_ext': BuildExtension
     })
