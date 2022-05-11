@@ -48,47 +48,45 @@ class Spmm(torch.autograd.Function):
 
 class Sddmm(torch.autograd.Function):
     @staticmethod
-    def forward(ctx, m, k, n, nnz, row_indices, row_offsets, column_indices, lhs_matrix, rhs_matrix):
+    def forward(ctx, m, k, n, row_indices, row_offsets, column_indices, lhs_matrix, rhs_matrix):
         ctx.m = m
         ctx.k = k
         ctx.n = n
-        ctx.nnz = nnz
         ctx.row_indices = row_indices
         ctx.row_offsets = row_offsets
         ctx.column_indices = column_indices
         ctx.save_for_backward(lhs_matrix, rhs_matrix)
-        return torch_sputnik.sddmm(m, k, n, nnz, row_indices, row_offsets, column_indices, lhs_matrix, rhs_matrix)
+        return torch_sputnik.sddmm(m, k, n, row_indices, row_offsets, column_indices, lhs_matrix, rhs_matrix)
 
     @staticmethod
     def backward(ctx, grad_output):
         m = ctx.m
         k = ctx.k
         n = ctx.n
-        nnz = ctx.nnz
         row_indices = ctx.row_indices
         row_offsets = ctx.row_offsets
         column_indices = ctx.column_indices
         lhs_matrix, rhs_matrix = ctx.saved_tensors
 
-        grad_m = grad_k = grad_n = grad_nnz = grad_row_indices = grad_row_offsets = grad_column_indices = grad_lhs = grad_rhs = None
+        grad_m = grad_k = grad_n = grad_row_indices = grad_row_offsets = grad_column_indices = grad_lhs = grad_rhs = None
         
         # lhs grad
-        grad_lhs = torch_sputnik.spmm(m, k, n, nnz, row_indices, grad_output, row_offsets, column_indices, rhs_matrix)
+        grad_lhs = torch_sputnik.spmm(m, k, n, row_indices, grad_output, row_offsets, column_indices, rhs_matrix)
 
         grad_t = grad_output.clone()
         row_offsets_t = row_offsets.clone()
         column_indices_t = column_indices.clone()
 
-        torch_sputnik.csr_transpose(m, n, nnz, grad_output, row_offsets, column_indices, grad_t, row_offsets_t, column_indices_t)
+        torch_sputnik.csr_transpose(m, n, grad_output, row_offsets, column_indices, grad_t, row_offsets_t, column_indices_t)
         row_indices_t = diffsort(row_offsets_t)
         
         # rhs grad
-        grad_rhs = torch_sputnik.spmm(n, k, m, nnz, row_indices_t, grad_t, row_offsets_t, column_indices_t, lhs_matrix)
+        grad_rhs = torch_sputnik.spmm(n, k, m, row_indices_t, grad_t, row_offsets_t, column_indices_t, lhs_matrix)
 
-        return grad_m, grad_k, grad_n, grad_nnz, grad_row_indices, grad_row_offsets, grad_column_indices, grad_lhs, grad_rhs
+        return grad_m, grad_k, grad_n, grad_row_indices, grad_row_offsets, grad_column_indices, grad_lhs, grad_rhs
 
 class SparseAttention(torch.nn.Module):
-    def __init__(self, m, k, n, nnz, row_indices, values, row_offsets, column_indices, q3d, k3d, v3d):
+    def __init__(self, m, k, n, row_indices, values, row_offsets, column_indices, q3d, k3d, v3d):
         super().__init__()
         self.values = torch.nn.Parameter(values)
         self.q3d = torch.nn.Parameter(q3d)
@@ -98,7 +96,6 @@ class SparseAttention(torch.nn.Module):
         self.m = m
         self.k = k
         self.n = n
-        self.nnz = nnz
         self.row_indices = row_indices
         self.row_offsets = row_offsets
         self.column_indices = column_indices
@@ -108,7 +105,7 @@ class SparseAttention(torch.nn.Module):
 
     def forward(self):
         logits = self.sddmm(
-                    self.m, self.k, self.n, self.nnz, 
+                    self.m, self.k, self.n, 
                     self.row_indices, 
                     self.row_offsets, 
                     self.column_indices, 
@@ -117,7 +114,7 @@ class SparseAttention(torch.nn.Module):
                 )
 
         weights = torch_sputnik.softmax(
-                    self.m, self.n, self.nnz, 
+                    self.m, self.n, 
                     logits, 
                     self.row_indices, 
                     self.row_offsets, 
@@ -125,7 +122,7 @@ class SparseAttention(torch.nn.Module):
                 )
 
         out = self.spmm(
-                self.m, self.k, self.n, self.nnz, 
+                self.m, self.k, self.n, 
                 self.row_indices, 
                 weights, 
                 self.row_offsets, 
@@ -172,7 +169,7 @@ def train_sparse():
     k3d = torch.arange(1, 2 * (nnz + 1) - 1, dtype=torch.float32).view(replication, k, n).cuda()
     v3d = torch.arange(1, 2 * (nnz + 1) - 1, dtype=torch.float32).view(replication, k, n).cuda()
 
-    model = SparseAttention(m, k, n, nnz, sparse_row_indices, sparse_values, sparse_row_offsets, sparse_column_indices, q3d, k3d, v3d)
+    model = SparseAttention(m, k, n, sparse_row_indices, sparse_values, sparse_row_offsets, sparse_column_indices, q3d, k3d, v3d)
 
     criterion = torch.nn.MSELoss(reduction='sum')
     optimizer = torch.optim.SGD(model.parameters(), lr=1e-6)
