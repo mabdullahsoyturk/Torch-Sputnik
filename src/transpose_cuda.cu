@@ -40,7 +40,7 @@ torch::Tensor allocate_transpose_workspace(cusparseHandle_t* handle,
     return workspace;
 }
 
-void csr_transpose(int m, int n, int nonzeros,
+void csr_transpose(int m, int n, torch::Tensor nnzs,
                    torch::Tensor values, 
                    torch::Tensor row_offsets,
                    torch::Tensor column_indices,
@@ -51,25 +51,35 @@ void csr_transpose(int m, int n, int nonzeros,
     cusparseHandle_t handle = NULL;
     CUSPARSE_CALL(cusparseCreate(&handle));
 
-    torch::Tensor workspace = allocate_transpose_workspace(&handle, m, n, nonzeros, 
-                                                          values, 
-                                                          row_offsets, 
-                                                          column_indices, 
-                                                          output_values, 
-                                                          output_row_offsets, 
-                                                          output_column_indices);
+    int dim_offset = nnzs.size(0) - 1;
+    int replication = dim_offset == 1 ? nnzs.size(0) : 1;
 
-    // Launch the kernel.
-    CUSPARSE_CALL(cusparseCsr2cscEx2(
-        handle, m, n, nonzeros, 
-        values.data_ptr<float>(), 
-        row_offsets.data_ptr<int>(),
-        column_indices.data_ptr<int>(), 
-        output_values.data_ptr<float>(), 
-        output_row_offsets.data_ptr<int>(), 
-        output_column_indices.data_ptr<int>(),
-        CUDA_R_32F, CUSPARSE_ACTION_NUMERIC, CUSPARSE_INDEX_BASE_ZERO,
-        CUSPARSE_CSR2CSC_ALG1, workspace.data_ptr<float>()));
+    int* nonzeros = nnzs.data_ptr<int>();
+    int sum = 0;
+
+    for (int idx = 0; idx < replication; ++idx) {
+        torch::Tensor workspace = allocate_transpose_workspace(&handle, m, n, nonzeros[idx], 
+                                                          values + sum, 
+                                                          row_offsets + (m + 1) * idx, 
+                                                          column_indices + sum, 
+                                                          output_values + sum, 
+                                                          output_row_offsets + (m + 1) * idx, 
+                                                          output_column_indices + sum);
+
+        // Launch the kernel.
+        CUSPARSE_CALL(cusparseCsr2cscEx2(
+            handle, m, n, nonzeros[idx], 
+            values.data_ptr<float>() + sum, 
+            row_offsets.data_ptr<int>() + (m + 1) * idx,
+            column_indices.data_ptr<int>() + sum, 
+            output_values.data_ptr<float>() + sum, 
+            output_row_offsets.data_ptr<int>() + (m + 1) * idx, 
+            output_column_indices.data_ptr<int>() + sum,
+            CUDA_R_32F, CUSPARSE_ACTION_NUMERIC, CUSPARSE_INDEX_BASE_ZERO,
+            CUSPARSE_CSR2CSC_ALG1, workspace.data_ptr<float>()));
+
+        sum += nonzeros[idx];
+    }
 
     cusparseDestroy(handle);
     cudaDeviceSynchronize();

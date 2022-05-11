@@ -9,7 +9,7 @@ def dense_to_sparse(matrix):
      row_indices = diffsort(row_offsets)
      column_indices = csr.col_indices().detach().to(torch.int32)
 
-     return values.cuda(), row_indices.cuda(), row_offsets.cuda(), column_indices.cuda()
+     return values.cuda(), row_indices.cuda(), row_offsets.cuda(), column_indices.cuda(), torch.Tensor([values.size(-1)]).to(torch.int32).cpu()
 
 def diffsort(offsets):
   diffs = (offsets - torch.roll(offsets, -1, 0))[:-1]

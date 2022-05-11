@@ -10,24 +10,14 @@ def transpose(m, k, n, nnz):
     out_values, out_row_indices, out_row_offsets, out_column_indices = dense_to_sparse(b)
 
     print('Before transpose:')
-    #print(column_indices.size())
-    #print(column_indices)
-
-    #print(row_offsets.size())
-    #print(row_offsets)\
-    
     print(values.size())
     print(values)
+
+    nonzeros = torch.IntTensor([nnz])
     
-    torch_sputnik.csr_transpose(m, n, nnz, values, row_offsets, column_indices, out_values, out_row_offsets, out_column_indices)
+    torch_sputnik.csr_transpose(m, n, nonzeros, values, row_offsets, column_indices, out_values, out_row_offsets, out_column_indices)
     
     print('\nAfter transpose:')
-    #print(transpose_out_column_indices.size())
-    #print(transpose_out_column_indices)
-
-    #print(transpose_out_row_offsets.size())
-    #print(transpose_out_row_offsets)
-
     print(out_values.size())
     print(out_values)
 
