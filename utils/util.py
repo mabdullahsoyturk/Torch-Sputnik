@@ -2,23 +2,38 @@ import torch
 import numpy as np
 
 def dense_to_sparse(matrix):
-     """Converts dense numpy matrix to a csr sparse matrix."""
      csr = matrix.to_sparse_csr()
-     values = csr.values().clone()
-     row_offsets = csr.crow_indices().detach().to(torch.int32)
-     row_indices = diffsort(row_offsets)
-     column_indices = csr.col_indices().detach().to(torch.int32)
+     values = csr.values().clone().detach()
+     row_offsets = csr.crow_indices().data.clone().to(torch.int32)
+     row_indices = diffsort(row_offsets).to(torch.int32)
+     column_indices = csr.col_indices().data.clone().to(torch.int32)
 
-     return values.cuda(), row_indices.cuda(), row_offsets.cuda(), column_indices.cuda(), torch.Tensor([values.size(-1)]).to(torch.int32).cpu()
+     return values, row_indices, row_offsets, column_indices, torch.Tensor([values.size(-1)]).to(torch.int32).cpu()
 
 def diffsort(offsets):
   diffs = (offsets - torch.roll(offsets, -1, 0))[:-1]
-  return torch.argsort(diffs, descending=True).to(torch.int32)
+  return torch.argsort(diffs, descending=True)
+
+def dense_to_sparse_3d(dense):
+    replication = dense.size(0)
+
+    values_3d, row_indices_3d, row_offsets_3d, column_indices_3d, nnz_3d = dense_to_sparse(dense[0, :, :])
+
+    for idx in range(1, replication):
+        values, row_indices, row_offsets, column_indices, nnz = dense_to_sparse(dense[idx, :, :])
+
+        values_3d = torch.cat([values_3d, values])
+        row_indices_3d = torch.cat([row_indices_3d, row_indices])
+        row_offsets_3d = torch.cat([row_offsets_3d, row_offsets])
+        column_indices_3d = torch.cat([column_indices_3d, column_indices])
+        nnz_3d = torch.cat([nnz_3d, nnz])
+
+    return values_3d, row_indices_3d, row_offsets_3d, column_indices_3d, nnz_3d
 
 if __name__ == "__main__":
      #dense = torch.arange(1, 65, dtype=torch.float32).view(8, 8)
      #values, row_indices, row_offsets, column_indices = dense_to_sparse(dense)
-#
+ 
      #print(dense)
      #print(values)
      #print(row_indices)

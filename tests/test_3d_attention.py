@@ -41,7 +41,7 @@ class Spmm(torch.autograd.Function):
         column_indices_t = column_indices.clone()
 
         torch_sputnik.csr_transpose(m, n, nnzs, values, row_offsets, column_indices, values_t, row_offsets_t, column_indices_t)
-        row_indices_t = diffsort(row_offsets_t)
+        row_indices_t = diffsort(row_offsets_t).to(torch.int32)
 
         # dense matrix grad
         grad_dense = torch_sputnik.spmm(k, m, n, nnzs, row_indices_t, values_t, row_offsets_t, column_indices_t, grad_output)
@@ -162,25 +162,17 @@ def train_sparse():
     m, k, n, nnz = 8, 8, 8, 64
     replication = 2
 
-    a = torch.arange(1, nnz + 1, dtype=torch.float32).view(m, k)
-    values, row_indices, row_offsets, column_indices, nonzeros = dense_to_sparse(a)
-    
-    b = torch.arange(nnz + 1, (2 * nnz) + 1, dtype=torch.float32).view(m, k)
-    values2, row_indices2, row_offsets2, column_indices2, nonzeros2 = dense_to_sparse(b)
-    
-    sparse_values = torch.cat((values, values2))
-    sparse_row_indices = torch.cat((row_indices, row_indices2))
-    sparse_row_offsets = torch.cat((row_offsets, row_offsets2))
-    sparse_column_indices = torch.cat((column_indices, column_indices2))
-    sparse_nonzeros = torch.cat((nonzeros, nonzeros2))
+    sparse = torch.arange(1, (2 * nnz) + 1, dtype=torch.float32).view(replication, m, k).cuda()
+
+    values, row_indices, row_offsets, column_indices, nnzs = dense_to_sparse_3d(sparse)
 
     q3d = torch.arange(1, 2 * (nnz + 1) - 1, dtype=torch.float32).view(replication, k, n).cuda()
     k3d = torch.arange(1, 2 * (nnz + 1) - 1, dtype=torch.float32).view(replication, k, n).cuda()
     v3d = torch.arange(1, 2 * (nnz + 1) - 1, dtype=torch.float32).view(replication, k, n).cuda()
 
-    mask = torch.ones_like(sparse_values)
+    mask = torch.ones_like(values).cuda()
 
-    model = SparseAttention(m, k, n, sparse_nonzeros, sparse_row_indices, sparse_values, sparse_row_offsets, sparse_column_indices, q3d, k3d, v3d, mask)
+    model = SparseAttention(m, k, n, nnzs, row_indices, values, row_offsets, column_indices, q3d, k3d, v3d, mask)
 
     criterion = torch.nn.MSELoss(reduction='sum')
     optimizer = torch.optim.SGD(model.parameters(), lr=1e-6)

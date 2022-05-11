@@ -14,14 +14,8 @@ torch::Tensor sddmm(int m, int k, int n, torch::Tensor nnzs,
     at::cuda::CUDAStream torch_stream = at::cuda::getCurrentCUDAStream();
     cudaStream_t stream = torch_stream.stream();
 
-    int dim_offset = lhs_matrix.dim() - 2;
-    int replication = dim_offset == 1 ? lhs_matrix.size(0) : 1;
-
-    auto options = torch::TensorOptions()
-                                        .dtype(torch::kFloat32)
-                                        .layout(torch::kStrided)
-                                        .device(torch::kCUDA, 0)
-                                        .requires_grad(true);
+    int dim_offset = nnzs.size(0) - 1;
+    int replication = dim_offset == 1 ? nnzs.size(0) : 1;
 
     int* nonzeros = nnzs.data_ptr<int>();
     int sum_nonzeros = 0;
