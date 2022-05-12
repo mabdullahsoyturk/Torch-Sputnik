@@ -9,13 +9,12 @@ def mm(m, k, n, nnz):
     return torch.matmul(sparse, dense)
 
 def spmm(m, k, n, nnz):
-    a = torch.arange(1, nnz + 1, dtype=torch.float32).view(m, k)
-    values, row_indices, row_offsets, column_indices = dense_to_sparse(a)
+    a = torch.arange(1, m * k + 1, dtype=torch.float32).view(m, k).cuda()
+    values, row_indices, row_offsets, column_indices, nnzs = dense_to_sparse(a)
 
-    dense = torch.arange(1,nnz + 1, dtype=torch.float32).view(k, n).cuda()
-    nonzeros = torch.IntTensor([nnz])
+    dense = torch.arange(1, k * n + 1, dtype=torch.float32).view(k, n).cuda()
 
-    result = torch_sputnik.spmm(m, k, n, nonzeros, row_indices, values, row_offsets, column_indices, dense)
+    result = torch_sputnik.spmm(m, k, n, nnzs, row_indices, values, row_offsets, column_indices, dense)
 
     return result
 
