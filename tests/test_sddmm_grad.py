@@ -51,20 +51,20 @@ nnz = 64
 m = 8
 k = 8
 n = 8
-x = torch.arange(1, nnz + 1, dtype=torch.float32).view(m, k)
-values, row_indices, row_offsets, column_indices = dense_to_sparse(x)
+x = torch.arange(1, nnz + 1, dtype=torch.float32).view(m, k).cuda()
+values, row_indices, row_offsets, column_indices, nnzs = dense_to_sparse(x)
 
-lhs = torch.arange(1, nnz + 1, dtype=torch.float32, device=device).view(k, n).requires_grad_()
-rhs = torch.arange(1, nnz + 1, dtype=torch.float32, device=device).view(k, n).requires_grad_()
+lhs = torch.arange(1, nnz + 1, dtype=torch.float32, device=device).view(k, n).cuda().requires_grad_()
+rhs = torch.arange(1, nnz + 1, dtype=torch.float32, device=device).view(k, n).cuda().requires_grad_()
 
-correct_result = torch.arange(1, nnz + 1, dtype=torch.float32, device=device).view(k, n)
+correct_result = torch.arange(1, nnz + 1, dtype=torch.float32, device=device).view(k, n).cuda()
 
 # To apply our Function, we use Function.apply method. We alias this as 'P3'.
 P3 = Sddmm.apply
 
 # Forward pass: compute predicted y using operations; we compute
 # P3 using our custom autograd operation.
-y_pred = P3(m, k, n, nnz, row_indices, row_offsets, column_indices, lhs, rhs, values).view(m, n)
+y_pred = P3(m, k, n, nnzs, row_indices, row_offsets, column_indices, lhs, rhs, values).view(m, n)
 
 # Compute and print loss
 print(y_pred - correct_result)

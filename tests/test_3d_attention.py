@@ -14,9 +14,9 @@ class Spmm(torch.autograd.Function):
         ctx.column_indices = column_indices
         ctx.mask = mask
         ctx.save_for_backward(values, dense)
-
-        result = torch_sputnik.spmm(m, k, n, nnzs, row_indices, values, row_offsets, column_indices, dense)
         
+        result = torch_sputnik.spmm(m, k, n, nnzs, row_indices, values, row_offsets, column_indices, dense)
+
         return result
 
     @staticmethod
@@ -31,26 +31,31 @@ class Spmm(torch.autograd.Function):
         mask = ctx.mask
         values, dense = ctx.saved_tensors
 
-        grad_m = grad_k = grad_n = grad_nnz = grad_row_indices = grad_values = grad_row_offsets = grad_column_indices = grad_mask = grad_dense = None
+        grad_m = grad_k = grad_n = grad_nnz = grad_row_indices = grad_values = grad_row_offsets = grad_column_indices = grad_dense = grad_mask = None
 
         # sparse matrix grad
-        print("Spmm: Before sddmm") 
         grad_values = torch_sputnik.sddmm(m, k, n, nnzs, row_indices, row_offsets, column_indices, grad_output, dense, mask)
-        print("Spmm: After sddmm")
 
         values_t = values.clone()
         row_offsets_t = row_offsets.clone()
         column_indices_t = column_indices.clone()
 
-        print("Spmm: Before transpose")
+        #print(values.size())
+        #print(row_indices.size())
+        #print(row_offsets.size())
+        #print(column_indices.size())
+#
+        #print(row_offsets)
         torch_sputnik.csr_transpose(m, n, nnzs, values, row_offsets, column_indices, values_t, row_offsets_t, column_indices_t)
         row_indices_t = diffsort(row_offsets_t).to(torch.int32)
-        print("Spmm: After transpose")
+
+        #print(values_t.size())
+        #print(row_indices_t.size())
+        #print(row_offsets_t.size())
+        #print(column_indices_t.size())
 
         # dense matrix grad
-        print("Spmm: Before spmm")
-        grad_dense = torch_sputnik.spmm(k, m, n, nnzs, row_indices_t, values_t, row_offsets_t, column_indices_t, grad_output)
-        print("Spmm: After spmm")
+        grad_dense = torch_sputnik.spmm(k, m, n, nnzs, row_indices, values_t, row_offsets_t, column_indices_t, grad_output)
 
         return grad_m, grad_k, grad_n, grad_nnz, grad_row_indices, grad_values, grad_row_offsets, grad_column_indices, grad_mask, grad_dense
 
@@ -65,6 +70,9 @@ class Sddmm(torch.autograd.Function):
         ctx.row_offsets = row_offsets
         ctx.column_indices = column_indices
         ctx.save_for_backward(lhs_matrix, rhs_matrix)
+
+        result = torch_sputnik.sddmm(m, k, n, nnzs, row_indices, row_offsets, column_indices, lhs_matrix, rhs_matrix, mask)
+
         return torch_sputnik.sddmm(m, k, n, nnzs, row_indices, row_offsets, column_indices, lhs_matrix, rhs_matrix, mask)
 
     @staticmethod
@@ -81,30 +89,22 @@ class Sddmm(torch.autograd.Function):
         grad_m = grad_k = grad_n = grad_nnzs = grad_row_indices = grad_row_offsets = grad_column_indices = grad_lhs = grad_rhs = grad_mask = None
         
         # lhs grad
-        print("Sddmm: Before spmm")
         grad_lhs = torch_sputnik.spmm(m, k, n, nnzs, row_indices, grad_output, row_offsets, column_indices, rhs_matrix)
-        print("Sddmm: After spmm")
 
         grad_t = grad_output.clone()
         row_offsets_t = row_offsets.clone()
         column_indices_t = column_indices.clone()
 
-        print("Sddmm: Before transpose")
         torch_sputnik.csr_transpose(m, n, nnzs, grad_output, row_offsets, column_indices, grad_t, row_offsets_t, column_indices_t)
-        row_indices_t = diffsort(row_offsets_t)
-        print("Sddmm: After transpose")
 
         # rhs grad
-        print("Sddmm: Before spmm")
-        grad_rhs = torch_sputnik.spmm(n, k, m, nnzs, row_indices_t, grad_t, row_offsets_t, column_indices_t, lhs_matrix)
-        print("Sddmm: After spmm")
+        grad_rhs = torch_sputnik.spmm(n, k, m, nnzs, row_indices, grad_t, row_offsets_t, column_indices_t, lhs_matrix)
 
         return grad_m, grad_k, grad_n, grad_nnzs, grad_row_indices, grad_row_offsets, grad_column_indices, grad_lhs, grad_rhs, grad_mask
 
 class SparseAttention(torch.nn.Module):
-    def __init__(self, m, k, n, nnzs, row_indices, values, row_offsets, column_indices, q3d, k3d, v3d, mask):
+    def __init__(self, m, k, n, nnzs, row_indices, row_offsets, column_indices, q3d, k3d, v3d, mask):
         super().__init__()
-        self.values = torch.nn.Parameter(values)
         self.q3d = torch.nn.Parameter(q3d)
         self.k3d = torch.nn.Parameter(k3d)
         self.v3d = torch.nn.Parameter(v3d)
@@ -166,25 +166,23 @@ class Attention(torch.nn.Module):
         attention_weights = self.softmax(scores)
 
         intermediate_token_representations = torch.matmul(attention_weights, self.v3d)
-        #print(intermediate_token_representations)
 
         return intermediate_token_representations
 
-def train_sparse():
-    m, k, n = 64, 64, 64
-    replication = 2
-
+def train_sparse(m, k, n, replication):
     sparse = torch.arange(1, (replication * m * k) + 1, dtype=torch.float32).view(replication, m, k).cuda()
 
     values, row_indices, row_offsets, column_indices, nnzs = dense_to_sparse_3d(sparse)
+    #print(values.size())
+    #print(row_indices.size())
+    #print(row_offsets.size())
+    #print(column_indices.size())
 
     q3d = torch.arange(1, (replication * m * k) + 1, dtype=torch.float32).view(replication, k, n).cuda()
     k3d = torch.arange(1, (replication * m * k) + 1, dtype=torch.float32).view(replication, k, n).cuda()
     v3d = torch.arange(1, (replication * m * k) + 1, dtype=torch.float32).view(replication, k, n).cuda()
 
-    mask = torch.ones_like(values).cuda()
-
-    model = SparseAttention(m, k, n, nnzs, row_indices, values, row_offsets, column_indices, q3d, k3d, v3d, mask)
+    model = SparseAttention(m, k, n, nnzs, row_indices, row_offsets, column_indices, q3d, k3d, v3d, values)
 
     criterion = torch.nn.MSELoss(reduction='sum')
     optimizer = torch.optim.SGD(model.parameters(), lr=1e-6)
@@ -206,9 +204,7 @@ def train_sparse():
         loss.backward()
         optimizer.step()
 
-def train_normal():
-    n, k = 64, 64
-    replication = 2
+def train_normal(m, k, n, replication):
     q3d = torch.arange(1, (replication * n * k) + 1, dtype=torch.float32).view(replication, k, n).cuda()
     k3d = torch.arange(1, (replication * n * k) + 1, dtype=torch.float32).view(replication, k, n).cuda()
     v3d = torch.arange(1, (replication * n * k) + 1, dtype=torch.float32).view(replication, k, n).cuda()
@@ -233,5 +229,7 @@ def train_normal():
         optimizer.step()
 
 if __name__ == "__main__":
-    train_sparse()
-    train_normal()
+    m, k, n = 32, 32, 32
+    replication = 2
+    train_sparse(m, k, n, replication)
+    train_normal(m, k, n, replication)
