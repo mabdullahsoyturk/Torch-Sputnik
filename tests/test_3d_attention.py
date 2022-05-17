@@ -45,9 +45,8 @@ class Spmm(torch.autograd.Function):
         #print(row_offsets.size())
         #print(column_indices.size())
 #
-        #print(row_offsets)
         torch_sputnik.csr_transpose(m, n, nnzs, values, row_offsets, column_indices, values_t, row_offsets_t, column_indices_t)
-        row_indices_t = diffsort(row_offsets_t).to(torch.int32)
+        row_indices_t = diffsort_3d(row_offsets_t, m, nnzs.size(0)).to(torch.int32)
 
         #print(values_t.size())
         #print(row_indices_t.size())
@@ -132,6 +131,8 @@ class SparseAttention(torch.nn.Module):
                     self.mask
                 )
 
+        print(logits)
+
         weights = torch_sputnik.softmax(
                     self.m, self.n, self.nnzs,
                     logits, 
@@ -153,15 +154,19 @@ class SparseAttention(torch.nn.Module):
         return out
 
 class Attention(torch.nn.Module):
-    def __init__(self, q3d, k3d, v3d):
+    def __init__(self, q3d, k3d, v3d, mask):
         super().__init__()
         self.q3d = torch.nn.Parameter(q3d)
         self.k3d = torch.nn.Parameter(k3d)
         self.v3d = torch.nn.Parameter(v3d)
+        self.mask = mask
         self.softmax = torch.nn.Softmax(dim=-1)
 
     def forward(self):
         scores = torch.matmul(self.q3d, self.k3d.transpose(-2, -1))
+
+        scores.masked_fill_(self.mask == 0, float("-inf"))
+        print(scores)
 
         attention_weights = self.softmax(scores)
 
@@ -171,11 +176,12 @@ class Attention(torch.nn.Module):
 
 def train_sparse(m, k, n, replication):
     sparse = torch.arange(1, (replication * m * k) + 1, dtype=torch.float32).view(replication, m, k).cuda()
+    sparse[0,0,:] = 0
 
     values, row_indices, row_offsets, column_indices, nnzs = dense_to_sparse_3d(sparse)
     #print(values.size())
-    #print(row_indices.size())
     #print(row_offsets.size())
+    #print(row_indices.size())
     #print(column_indices.size())
 
     q3d = torch.arange(1, (replication * m * k) + 1, dtype=torch.float32).view(replication, k, n).cuda()
@@ -208,8 +214,10 @@ def train_normal(m, k, n, replication):
     q3d = torch.arange(1, (replication * n * k) + 1, dtype=torch.float32).view(replication, k, n).cuda()
     k3d = torch.arange(1, (replication * n * k) + 1, dtype=torch.float32).view(replication, k, n).cuda()
     v3d = torch.arange(1, (replication * n * k) + 1, dtype=torch.float32).view(replication, k, n).cuda()
+    mask = torch.arange(1, (replication * m * k) + 1, dtype=torch.float32).view(replication, m, k).cuda()
+    mask[0,0,:] = 0
 
-    model = Attention(q3d, k3d, v3d)
+    model = Attention(q3d, k3d, v3d, mask)
 
     criterion = torch.nn.MSELoss(reduction='sum')
     optimizer = torch.optim.SGD(model.parameters(), lr=1e-6)

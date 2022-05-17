@@ -5,7 +5,9 @@ def dense_to_sparse(matrix):
      csr = matrix.to_sparse_csr()
      values = csr.values().clone().detach()
      row_offsets = csr.crow_indices().data.clone().to(torch.int32)
+     #print(row_offsets.size())
      row_indices = diffsort(row_offsets).to(torch.int32)
+     #print(row_indices.size())
      column_indices = csr.col_indices().data.clone().to(torch.int32)
 
      return values, row_indices, row_offsets, column_indices, torch.Tensor([values.size(-1)]).to(torch.int32).cpu()
@@ -13,6 +15,17 @@ def dense_to_sparse(matrix):
 def diffsort(offsets):
   diffs = (offsets - torch.roll(offsets, -1, 0))[:-1]
   return torch.argsort(diffs, descending=True)
+
+def diffsort_3d(offsets, m, replication):
+     indices_3d = torch.Tensor([]).cuda()
+     offset_index_start = 0
+     offset_index_end = m + 1
+
+     for idx in range(replication):
+          indices = diffsort(offsets[offset_index_start:offset_index_end])
+          indices_3d = torch.cat([indices_3d, indices])  
+
+     return indices_3d
 
 def dense_to_sparse_3d(dense):
     replication = dense.size(0)
