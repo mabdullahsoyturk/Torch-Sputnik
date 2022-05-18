@@ -18,7 +18,7 @@ torch::Tensor softmax(int m, int n, torch::Tensor nnzs,
     auto options = torch::TensorOptions()
                                         .dtype(torch::kFloat32)
                                         .layout(torch::kStrided)
-                                        .device(torch::kCUDA, 0)
+                                        .device(torch::kCUDA, values.device().index())
                                         .requires_grad(true);
     
     torch::Tensor out = torch::zeros_like(values, options);

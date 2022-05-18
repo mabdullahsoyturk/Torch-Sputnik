@@ -20,7 +20,7 @@ torch::Tensor spmm_graph(int m, int k, int n,
     auto options = torch::TensorOptions()
                                         .dtype(torch::kFloat32)
                                         .layout(torch::kStrided)
-                                        .device(torch::kCUDA, 0)
+                                        .device(torch::kCUDA, values.device().index())
                                         .requires_grad(true);
 
     torch::Tensor out = replication == 1 ? torch::zeros({m, n}, options) : torch::zeros({replication, m, n}, options);

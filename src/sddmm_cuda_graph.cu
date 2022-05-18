@@ -20,7 +20,7 @@ torch::Tensor sddmm_graph(int m, int k, int n,
     auto options = torch::TensorOptions()
                                         .dtype(torch::kFloat32)
                                         .layout(torch::kStrided)
-                                        .device(torch::kCUDA, 0)
+                                        .device(torch::kCUDA, lhs_matrix.device().index())
                                         .requires_grad(true);
 
     torch::Tensor output_values = replication == 1 ? torch::zeros({nonzeros}, options) : torch::zeros({replication, nonzeros}, options);
