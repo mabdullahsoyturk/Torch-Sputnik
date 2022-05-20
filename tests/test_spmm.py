@@ -12,7 +12,7 @@ def spmm(sparse, dense, m, k, n):
     return result
 
 if __name__ == "__main__":
-    m, k, n = 32, 32, 32
+    m, k, n = 64, 64, 64
     sparse = torch.rand((m * k), dtype=torch.float32).view(m, k).cuda()
     dense = torch.rand((m * k), dtype=torch.float32).view(m, k).cuda()
 
