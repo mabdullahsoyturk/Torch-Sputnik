@@ -5,12 +5,10 @@ def dense_to_sparse(matrix):
      csr = matrix.to_sparse_csr()
      values = csr.values().clone().detach()
      row_offsets = csr.crow_indices().data.clone().to(torch.int32)
-     #print(row_offsets.size())
      row_indices = diffsort(row_offsets).to(torch.int32)
-     #print(row_indices.size())
      column_indices = csr.col_indices().data.clone().to(torch.int32)
 
-     return values, row_indices, row_offsets, column_indices, torch.Tensor([values.size(-1)]).to(torch.int32).cpu()
+     return values, row_indices, row_offsets, column_indices
 
 def diffsort(offsets):
   diffs = (offsets - torch.roll(offsets, -1, 0))[:-1]

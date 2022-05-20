@@ -38,5 +38,5 @@ torch::Tensor softmax(torch::Tensor values,
 
     cudaStreamSynchronize(stream);
     
-    return out;
+    return output;
 }
