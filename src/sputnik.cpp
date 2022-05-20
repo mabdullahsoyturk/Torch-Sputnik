@@ -1,7 +1,7 @@
 #include <torch/extension.h>
 
 // Forward Declaration
-torch::Tensor spmm(int m, int k, int n,
+torch::Tensor spmm(int m, int k,
                     torch::Tensor values, 
                     torch::Tensor row_indices,
                     torch::Tensor row_offsets, 

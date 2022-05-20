@@ -7,7 +7,7 @@ def mm(sparse, dense, m, k, n):
 
 def spmm(sparse, dense, m, k, n):
     values, row_indices, row_offsets, column_indices = dense_to_sparse(sparse)
-    result = torch_sputnik.spmm(m, k, n, values, row_indices, row_offsets, column_indices, dense)
+    result = torch_sputnik.spmm(m, k, values, row_indices, row_offsets, column_indices, dense)
 
     return result
 

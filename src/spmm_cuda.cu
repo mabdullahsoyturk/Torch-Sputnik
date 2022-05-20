@@ -4,7 +4,7 @@
 #include <c10/cuda/CUDAStream.h>
 #include "error_check.h"
 
-torch::Tensor spmm(int m, int k, int n,
+torch::Tensor spmm(int m, int k,
                torch::Tensor values, 
                torch::Tensor row_indices,
                torch::Tensor row_offsets, 
@@ -15,6 +15,7 @@ torch::Tensor spmm(int m, int k, int n,
 
     int nonzeros = column_indices.size(0);
     int dim_offset = dense_matrix.dim() - 2;
+    int n = dense_matrix.size(dim_offset + 1);
     int replication = dim_offset == 1 ? dense_matrix.size(0) : 1;
 
     auto options = torch::TensorOptions()
