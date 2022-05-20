@@ -4,41 +4,40 @@
 #include <c10/cuda/CUDAStream.h>
 #include "error_check.h"
 
-torch::Tensor sddmm(int m, int k, int n, torch::Tensor nnzs,
+torch::Tensor sddmm(int m, int n,
                            torch::Tensor row_indices,
                            torch::Tensor row_offsets,
                            torch::Tensor column_indices,
                            torch::Tensor lhs_matrix,
-                           torch::Tensor rhs_matrix,
-                           torch::Tensor mask) {
+                           torch::Tensor rhs_matrix) {
     at::cuda::CUDAStream torch_stream = at::cuda::getCurrentCUDAStream();
     cudaStream_t stream = torch_stream.stream();
 
-    int dim_offset = nnzs.size(0) - 1;
-    int replication = dim_offset == 1 ? nnzs.size(0) : 1;
+    int nonzeros    = column_indices.size(0);
+    int dim_offset  = lhs_matrix.dim() - 2;
+    int k           = lhs_matrix.size(dim_offset + 1);
+    int replication = dim_offset == 1 ? lhs_matrix.size(0) : 1;
 
-    int* nonzeros = nnzs.data_ptr<int>();
-    int sum_nonzeros = 0;
+    auto options = torch::TensorOptions()
+                                        .dtype(torch::kFloat32)
+                                        .layout(torch::kStrided)
+                                        .device(torch::kCUDA, lhs_matrix.device().index())
+                                        .requires_grad(true);
 
-    for(int i = 0; i < nnzs.size(0); i++) {
-      sum_nonzeros += nonzeros[i];
-    }
-
-    int sum = 0;
+    torch::Tensor output = replication == 1 ? torch::zeros({nonzeros}, options) : torch::zeros({replication, nonzeros}, options);
 
     for (int idx = 0; idx < replication; ++idx) {
-      CUDA_CALL(sputnik::CudaSddmm(m, k, n, nonzeros[idx], 
-                                row_indices.data_ptr<int>() + m * idx, 
-                                row_offsets.data_ptr<int>() + (m + 1) * idx, 
-                                column_indices.data_ptr<int>() + sum,
+      CUDA_CALL(sputnik::CudaSddmm(m, k, n, nonzeros, 
+                                row_indices.data_ptr<int>(), 
+                                row_offsets.data_ptr<int>(), 
+                                column_indices.data_ptr<int>(),
                                 lhs_matrix.data_ptr<float>() + m * k * idx, 
                                 rhs_matrix.data_ptr<float>() + k * n * idx, 
-                                mask.data_ptr<float>() + sum, 
+                                output.data_ptr<float>() + nonzeros * idx, 
                                 stream));
-      sum += nonzeros[idx];
     }
     
     cudaStreamSynchronize(stream);
     
-    return mask;
+    return output;
 }

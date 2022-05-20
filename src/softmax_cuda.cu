@@ -4,16 +4,19 @@
 #include <c10/cuda/CUDAStream.h>
 #include "error_check.h"
 
-torch::Tensor softmax(int m, int n, torch::Tensor nnzs,
-                      torch::Tensor values,
+torch::Tensor softmax(torch::Tensor values,
                       torch::Tensor row_indices,
                       torch::Tensor row_offsets,
                       torch::Tensor column_indices) {
     at::cuda::CUDAStream torch_stream = at::cuda::getCurrentCUDAStream();
     cudaStream_t stream = torch_stream.stream();
 
-    int dim_offset = nnzs.size(0) - 1;
-    int replication = dim_offset == 1 ? nnzs.size(0) : 1;
+    int m = row_indices.size(0);
+    int n = -1; // The kernel doesn't actually need the n argument. Pass garbage.
+    int nonzeros = column_indices.size(0);
+
+    int dim_offset = values.dim() - 1;
+    int replication = dim_offset == 1 ? values.size(0) : 1;
 
     auto options = torch::TensorOptions()
                                         .dtype(torch::kFloat32)
@@ -21,20 +24,16 @@ torch::Tensor softmax(int m, int n, torch::Tensor nnzs,
                                         .device(torch::kCUDA, values.device().index())
                                         .requires_grad(true);
     
-    torch::Tensor out = torch::zeros_like(values, options);
-
-    int* nonzeros = nnzs.data_ptr<int>();
-    int sum = 0;
+    torch::Tensor output = torch::zeros_like(values, options);
 
     for (int idx = 0; idx < replication; ++idx) {
-      CUDA_CALL(sputnik::SparseSoftmax(m, n, nonzeros[idx], 
-                                values.data_ptr<float>() + sum,
-                                row_indices.data_ptr<int>() + m * idx, 
-                                row_offsets.data_ptr<int>() + (m + 1) * idx, 
-                                column_indices.data_ptr<int>() + sum,
-                                out.data_ptr<float>() + sum, 
+      CUDA_CALL(sputnik::SparseSoftmax(m, n, nonzeros, 
+                                values.data_ptr<float>() + nonzeros * idx,
+                                row_indices.data_ptr<int>(), 
+                                row_offsets.data_ptr<int>(), 
+                                column_indices.data_ptr<int>(),
+                                output.data_ptr<float>() + nonzeros * idx, 
                                 stream));     
-      sum += nonzeros[idx]; 
     }
 
     cudaStreamSynchronize(stream);
