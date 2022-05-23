@@ -13,7 +13,7 @@ torch::Tensor spmm(int m, int k,
     at::cuda::CUDAStream torch_stream = at::cuda::getCurrentCUDAStream();
     cudaStream_t stream = torch_stream.stream();
 
-    int nonzeros = column_indices.size(0);
+    int nonzeros = column_indices.size(-1);
     int dim_offset = dense_matrix.dim() - 2;
     int n = dense_matrix.size(dim_offset + 1);
     int replication = dim_offset == 1 ? dense_matrix.size(0) : 1;

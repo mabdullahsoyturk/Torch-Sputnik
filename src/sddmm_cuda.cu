@@ -13,7 +13,7 @@ torch::Tensor sddmm(int m, int n,
     at::cuda::CUDAStream torch_stream = at::cuda::getCurrentCUDAStream();
     cudaStream_t stream = torch_stream.stream();
 
-    int nonzeros    = column_indices.size(0);
+    int nonzeros    = column_indices.size(-1);
     int dim_offset  = lhs_matrix.dim() - 2;
     int k           = lhs_matrix.size(dim_offset + 1);
     int replication = dim_offset == 1 ? lhs_matrix.size(0) : 1;

@@ -30,9 +30,9 @@ class Spmm(torch.autograd.Function):
         # sparse matrix grad
         grad_values = torch_sputnik.sddmm(m, k, row_indices, row_offsets, column_indices, grad_output, dense)
 
-        values_t = values.clone()
-        row_offsets_t = row_offsets.clone()
-        column_indices_t = column_indices.clone()
+        values_t = torch.zeros_like(values)
+        row_offsets_t = torch.zeros_like(row_offsets)
+        column_indices_t = torch.zeros_like(column_indices)
 
         torch_sputnik.csr_transpose(m, k, values, row_offsets, column_indices, values_t, row_offsets_t, column_indices_t)
         row_indices_t = diffsort_3d(row_offsets_t, m).to(torch.int32)

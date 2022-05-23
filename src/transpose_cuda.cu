@@ -51,7 +51,7 @@ void csr_transpose(int m, int n,
     cusparseHandle_t handle = NULL;
     CUSPARSE_CALL(cusparseCreate(&handle));
 
-    int nonzeros = values.size(0);
+    int nonzeros = values.size(-1);
 
     auto options = torch::TensorOptions()
                                         .dtype(torch::kFloat32)
@@ -79,5 +79,6 @@ void csr_transpose(int m, int n,
         CUDA_R_32F, CUSPARSE_ACTION_NUMERIC, CUSPARSE_INDEX_BASE_ZERO,
         CUSPARSE_CSR2CSC_ALG1, workspace.data_ptr<float>()));
 
+    cudaDeviceSynchronize();
     cusparseDestroy(handle);
 }

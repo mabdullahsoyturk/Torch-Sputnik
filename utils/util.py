@@ -28,18 +28,17 @@ def diffsort_3d(offsets, m, replication):
 def dense_to_sparse_3d(dense):
     replication = dense.size(0)
 
-    values_3d, row_indices_3d, row_offsets_3d, column_indices_3d, nnz_3d = dense_to_sparse(dense[0, :, :])
+    values_3d, row_indices_3d, row_offsets_3d, column_indices_3d = dense_to_sparse(dense[0, :, :])
 
     for idx in range(1, replication):
         values, row_indices, row_offsets, column_indices, nnz = dense_to_sparse(dense[idx, :, :])
 
-        values_3d = torch.cat([values_3d, values])
-        row_indices_3d = torch.cat([row_indices_3d, row_indices])
-        row_offsets_3d = torch.cat([row_offsets_3d, row_offsets])
-        column_indices_3d = torch.cat([column_indices_3d, column_indices])
-        nnz_3d = torch.cat([nnz_3d, nnz])
+        values_3d = torch.stack([values_3d, values])
+        row_indices_3d = torch.stack([row_indices_3d, row_indices])
+        row_offsets_3d = torch.stack([row_offsets_3d, row_offsets])
+        column_indices_3d = torch.stack([column_indices_3d, column_indices])
 
-    return values_3d, row_indices_3d, row_offsets_3d, column_indices_3d, nnz_3d
+    return values_3d, row_indices_3d, row_offsets_3d, column_indices_3d
 
 if __name__ == "__main__":
      #dense = torch.arange(1, 65, dtype=torch.float32).view(8, 8)

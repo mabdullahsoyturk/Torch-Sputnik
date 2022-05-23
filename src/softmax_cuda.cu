@@ -11,9 +11,9 @@ torch::Tensor softmax(torch::Tensor values,
     at::cuda::CUDAStream torch_stream = at::cuda::getCurrentCUDAStream();
     cudaStream_t stream = torch_stream.stream();
 
-    int m = row_indices.size(0);
+    int m = row_indices.size(-1);
     int n = -1; // The kernel doesn't actually need the n argument. Pass garbage.
-    int nonzeros = column_indices.size(0);
+    int nonzeros = column_indices.size(-1);
 
     int dim_offset = values.dim() - 1;
     int replication = dim_offset == 1 ? values.size(0) : 1;

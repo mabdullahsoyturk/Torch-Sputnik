@@ -1,6 +1,19 @@
 import torch
 import torch_sputnik
-from utils.util import *
+#from utils.util import *
+
+def dense_to_sparse(matrix):
+     csr = matrix.to_sparse_csr()
+     values = csr.values().clone().detach()
+     row_offsets = csr.crow_indices().data.clone().to(torch.int32)
+     row_indices = diffsort(row_offsets).to(torch.int32)
+     column_indices = csr.col_indices().data.clone().to(torch.int32)
+
+     return values, row_indices, row_offsets, column_indices
+
+def diffsort(offsets):
+  diffs = (offsets - torch.roll(offsets, -1, 0))[:-1]
+  return torch.argsort(diffs, descending=True)
 
 def mm(sparse, lhs_matrix, rhs_matrix, m, k, n):
     result = torch.matmul(lhs_matrix, rhs_matrix.t())
@@ -10,14 +23,18 @@ def mm(sparse, lhs_matrix, rhs_matrix, m, k, n):
     return result
 
 def sddmm(sparse, lhs_matrix, rhs_matrix, m, k, n):
-    _, row_indices, row_offsets, column_indices = dense_to_sparse(sparse)
+    values, row_indices, row_offsets, column_indices = dense_to_sparse(sparse)
+    print(values.size())
+    print(row_indices.size())
+    print(row_offsets.size())
+    print(column_indices.size())
 
     output_values = torch_sputnik.sddmm(m, n, row_indices, row_offsets, column_indices, lhs_matrix, rhs_matrix)
 
     return output_values
 
 if __name__ == "__main__":
-    m, k, n = 64, 64, 64
+    m, k, n = 11, 64, 11
 
     sparse = torch.rand((m * n), dtype=torch.float32).view(m, n).cuda()
     lhs_matrix = torch.rand((m * k), dtype=torch.float32).view(m, k).cuda()
