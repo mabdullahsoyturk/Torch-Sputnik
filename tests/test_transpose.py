@@ -4,9 +4,9 @@ from utils.util import *
 
 def sparse_transpose(sparse, m, k, n):
     values, row_indices, row_offsets, column_indices = dense_to_sparse(sparse)
-    output_values = values.clone()
-    output_row_offsets = row_offsets.clone()
-    output_column_indices = column_indices.clone()
+    output_values = torch.zeros_like(values)
+    output_row_offsets = torch.zeros_like(row_offsets)
+    output_column_indices = torch.zeros_like(column_indices)
 
     torch_sputnik.csr_transpose(m, n, values, row_offsets, column_indices, output_values, output_row_offsets, output_column_indices)
 
