@@ -33,10 +33,10 @@ def _dense_to_sparse(matrix):
         [row_indices, row_offsets, column_indices]
     ]
 
-    values = torch.from_numpy(values).cuda()
-    row_indices = torch.from_numpy(row_indices).cuda()
-    row_offsets = torch.from_numpy(row_offsets).cuda()
-    column_indices = torch.from_numpy(column_indices).cuda()
+    values = torch.from_numpy(values).to(torch.float32).cuda()
+    row_indices = torch.from_numpy(row_indices).to(torch.int32).cuda()
+    row_offsets = torch.from_numpy(row_offsets).to(torch.int32).cuda()
+    column_indices = torch.from_numpy(column_indices).to(torch.int32).cuda()
 
     return values, row_indices, row_offsets, column_indices
 
@@ -92,3 +92,88 @@ class SparseTopology(object):
     @property
     def column_indices(self):
         return self._column_indices
+
+class SparseMatrix(object):
+  """Compressed sparse row matrix type."""
+  def __init__(self,
+               shape=None,
+               matrix=None,
+               initializer=initializers.Uniform(),
+               connector=connectors.Uniform(0.8),
+               trainable=True,
+               dtype=torch.float32):
+    if matrix is None:
+      assert shape is not None and len(shape) == 2
+      matrix = connector(initializer(shape))
+      self._shape = shape
+    else:
+      assert shape is None
+      assert len(matrix.shape) == 2
+      self._shape = matrix.shape
+    self._dtype = dtype
+    self._sparsity = 1.0 - np.count_nonzero(matrix) / matrix.size
+
+    # Create a numpy version of the sparse matrix.
+    values_, row_indices_, row_offsets_, column_indices_ = _dense_to_sparse(matrix)
+
+    self._values = values_
+    self._row_indices = row_indices_
+    self._row_offsets = row_offsets_
+    self._column_indices = column_indices_
+
+  @classmethod
+  def _wrap_existing(cls, shape, rows, columns, values, row_indices,
+                     row_offsets, column_indices):
+    """Helper to wrap existing tensors in a SparseMatrix object."""
+    matrix = cls.__new__(cls)
+
+    # Set the members appropriately.
+    #
+    # pylint: disable=protected-access
+    matrix._shape = shape
+    matrix._rows = rows
+    matrix._columns = columns
+    matrix._values = values
+    matrix._row_indices = row_indices
+    matrix._row_offsets = row_offsets
+    matrix._column_indices = column_indices
+    matrix._name = values.name
+    matrix._dtype = values.dtype
+    # pylint: enable=protected-access
+    return matrix
+
+  @property
+  def name(self):
+    return self._name
+
+  @property
+  def shape(self):
+    return self._shape
+
+  @property
+  def size(self):
+    return np.prod(self._shape)
+
+  @property
+  def dtype(self):
+    return self._dtype
+
+  @property
+  def sparsity(self):
+    return self._sparsity
+
+  @property
+  def values(self):
+    return self._values
+
+  @property
+  def row_indices(self):
+    return self._row_indices
+
+  @property
+  def row_offsets(self):
+    return self._row_offsets
+
+  @property
+  def column_indices(self):
+    return self._column_indices
