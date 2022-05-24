@@ -129,30 +129,28 @@ class SparseAttention(torch.nn.Module):
 
     def forward(self, m, k, n, row_indices, row_offsets, column_indices, q3d, k3d, v3d):
         logits = self.sddmm(
-                    self.m, self.k, self.n,
-                    self.row_indices, 
-                    self.row_offsets, 
-                    self.column_indices, 
-                    self.q3d, 
-                    self.k3d,
+                    m, n,
+                    row_indices, 
+                    row_offsets, 
+                    column_indices, 
+                    q3d, 
+                    k3d,
                 )
 
-        print(logits)
-
-        weights = torch_sputnik.softmax(
+        weights = torch_sputnik.sparse_softmax(
                     logits, 
-                    self.row_indices, 
-                    self.row_offsets, 
-                    self.column_indices
+                    row_indices, 
+                    row_offsets, 
+                    column_indices
                 )
 
         out = self.spmm(
-                self.m, self.k, self.n,
-                self.row_indices, 
-                weights, 
-                self.row_offsets, 
-                self.column_indices, 
-                self.v3d
+                m, k,
+                weights,
+                row_indices,  
+                row_offsets, 
+                column_indices, 
+                v3d
             )
 
         return out
@@ -169,12 +167,12 @@ if __name__ == "__main__":
     output_np = connector(np.ones([m, n]))
 
     output_topology = sparse_matrix.SparseMatrix(matrix=output_np)
-    q3d = torch.from_numpy(lhs_np).to(torch.float32).requires_grad_().cuda()
-    v3d = torch.from_numpy(rhs_np).to(torch.float32).requires_grad_().cuda()
+    q3d = torch.from_numpy(lhs_np).to(torch.float32).cuda()
+    k3d = torch.from_numpy(rhs_np).to(torch.float32).cuda()
+    v3d = torch.from_numpy(rhs_np).to(torch.float32).cuda()
 
     sparse_attention = SparseAttention()
 
-    input = (m, n, output_topology.row_indices, output_topology.row_offsets, output_topology.column_indices, lhs, rhs)
+    result = sparse_attention(m, k, n, output_topology.row_indices, output_topology.row_offsets, output_topology.column_indices, q3d, k3d, v3d)
 
-    test = gradcheck(sparse_attention, input, eps=1e-3, atol=1e-3)
-    print(test)
+    print(result)
