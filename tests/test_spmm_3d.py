@@ -1,20 +1,9 @@
+import numpy as np
 import torch
 import torch_sputnik
-#from utils.util import *
-
-def dense_to_sparse_3d(dense):
-    replication = dense.size(0)
-
-    values_3d, row_indices_3d, row_offsets_3d, column_indices_3d = [], [], [], []
-
-    for idx in range(replication):
-        values, row_indices, row_offsets, column_indices = dense_to_sparse(dense[idx, :, :])
-        values_3d.append(values)
-        row_indices_3d.append(row_indices)
-        row_offsets_3d.append(row_offsets)
-        column_indices_3d.append(column_indices)
-
-    return torch.stack(values_3d), torch.stack(row_indices_3d), torch.stack(row_offsets_3d), torch.stack(column_indices_3d)
+import connectors
+import initializers
+import sparse_matrix
 
 def dense_to_sparse(matrix):
      csr = matrix.to_sparse_csr()
@@ -32,26 +21,35 @@ def diffsort(offsets):
 def mm(sparse, dense, replicaiton, m, k, n):
     return torch.matmul(sparse, dense)
 
-def spmm(sparse, dense, replication, m, k, n):
+def spmm(sparse, dense, r, m, k, n):
     values, row_indices, row_offsets, column_indices = dense_to_sparse_3d(sparse)
     result = torch_sputnik.spmm(m, k, values, row_indices, row_offsets, column_indices, dense)
 
     return result
 
 if __name__ == "__main__":
-    replication, m, k, n = 584, 11, 11, 64
-    sparse = torch.rand((replication * m * k), dtype=torch.float32).view(replication, m, k).cuda()
-    dense = torch.rand((replication * k * n), dtype=torch.float32).view(replication, k, n).cuda()
-
-    sparse_result = spmm(sparse, dense, replication, m, k, n)
-    dense_result = mm(sparse, dense, replication, m, k, n)
-
-    #print(sparse_result)
-    #print(dense_result)
+    r, m, k, n, sparsity = 8, 512, 512, 512, 0.0
     
-    print(((sparse_result - dense_result) < 1e4).sum().item())
+    connector = connectors.Uniform(sparsity, round_to=4)
+    initializer = initializers.Uniform()
 
-    if ((sparse_result - dense_result) < 1e4).sum().item() == replication * m * n:
+    mask = connector(initializer([m, k]))
+    mask[mask != 0] = 1.0
+
+    lhs_np = np.expand_dims(mask, axis=0) * initializer([r, m, k])
+    rhs_np = initializer([r, k, n])
+
+    print(f'\nlhs_np: {lhs_np.shape}, rhs_np: {rhs_np.shape}, mask_np: {mask.shape}')
+
+    topology = sparse_matrix.SparseTopology("topology", mask=mask)
+    lhs = torch.from_numpy(np.reshape(lhs_np[lhs_np != 0], [r, -1])).to(torch.float32).cuda()
+    rhs = torch.from_numpy(rhs_np).to(torch.float32).cuda()
+
+    sparse_result = torch_sputnik.spmm(m, k, lhs, topology.row_indices, topology.row_offsets, topology.column_indices, rhs)
+
+    dense_result = mm(lhs.reshape(r, m, k), rhs, r, m, k, n)
+
+    if ((sparse_result.view(r, m, n) - dense_result) < 1e4).sum().item() == r * m * n:
         print("Results match")
     else:
         print("Results don't match")

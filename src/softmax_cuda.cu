@@ -4,7 +4,7 @@
 #include <c10/cuda/CUDAStream.h>
 #include "error_check.h"
 
-torch::Tensor softmax(torch::Tensor values,
+torch::Tensor sparse_softmax(torch::Tensor values,
                       torch::Tensor row_indices,
                       torch::Tensor row_offsets,
                       torch::Tensor column_indices) {

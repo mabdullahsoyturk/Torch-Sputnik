@@ -10,6 +10,7 @@ torch::Tensor spmm(int m, int k,
                torch::Tensor row_offsets, 
                torch::Tensor column_indices,
                torch::Tensor dense_matrix) {
+                 
     at::cuda::CUDAStream torch_stream = at::cuda::getCurrentCUDAStream();
     cudaStream_t stream = torch_stream.stream();
 

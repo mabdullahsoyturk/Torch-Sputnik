@@ -15,7 +15,7 @@ torch::Tensor sddmm(int m, int n,
                     torch::Tensor lhs_matrix,
                     torch::Tensor rhs_matrix);
 
-torch::Tensor softmax(torch::Tensor values,
+torch::Tensor sparse_softmax(torch::Tensor values,
                     torch::Tensor row_indices,
                     torch::Tensor row_offsets,
                     torch::Tensor column_indices);
@@ -32,6 +32,6 @@ void csr_transpose(
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   m.def("spmm", &spmm, "Sparse Matrix Matrix Multiplication: AxB");
   m.def("sddmm", &sddmm, "Sampled Dense Dense Matrix Multiplication: (AxB).C = D");
-  m.def("softmax", &softmax, "Computes softmax function across the last dim of a sparse matrix");
+  m.def("sparse_softmax", &sparse_softmax, "Computes softmax function across the last dim of a sparse matrix");
   m.def("csr_transpose", &csr_transpose, "Transpose sparse matrix");
 }
