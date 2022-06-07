@@ -1,40 +1,48 @@
 import torch
 import torch_sputnik
-from utils.util import *
+import connectors
+import initializers
+import sparse_matrix
+import time
+import numpy as np
 
-def softmax(sparse, lhs_matrix, rhs_matrix, m, k, n):
-    result = torch.matmul(lhs_matrix, rhs_matrix.t())
-    result.masked_fill_(sparse == torch.tensor(0), 0)
+def softmax(matrix_np):
+    # Zero terms should not contribute to the softmax.
+    matrix_np[matrix_np == 0] = -1e9
+
+    matrix = torch.from_numpy(matrix_np).to(torch.float32).cuda()
 
     softmax = torch.nn.Softmax(dim=-1)
-    result = softmax(result)
 
-    return result
+    start = time.time()
+    result = softmax(matrix)
+    end = time.time()
+    dense_time = end - start
 
-def sparse_softmax(sparse, lhs_matrix, rhs_matrix, m, k, n):
-    _, row_indices, row_offsets, column_indices = dense_to_sparse(sparse)
-
-    output_values = torch_sputnik.sddmm(m, n, row_indices, row_offsets, column_indices, lhs_matrix, rhs_matrix)
-    result = torch_sputnik.softmax(output_values, row_indices, row_offsets, column_indices)
-
-    return result
+    return result, dense_time
 
 if __name__ == "__main__":
-    m, k, n = 64, 64, 64
+    m, k, n, sparsity = 72, 64, 72, 0.9
 
-    sparse = torch.rand((m * n), dtype=torch.float32).view(m, n).cuda()
-    lhs_matrix = torch.rand((m * k), dtype=torch.float32).view(m, k).cuda()
-    rhs_matrix = torch.rand((k * n), dtype=torch.float32).view(m, k).cuda()
+    connector = connectors.Uniform(sparsity)
+    initializer = initializers.Uniform()
 
-    sparse_result = sparse_softmax(sparse, lhs_matrix, rhs_matrix, m, k, n)
-    dense_result = softmax(sparse, lhs_matrix, rhs_matrix, m, k, n)
+    matrix_np = connector(initializer([m, n]))
 
-    print(sparse_result.size())
-    print(sparse_result)
-    print(dense_result.size())
-    print(dense_result)
+    print(f'\nmatrix_np: {matrix_np.shape}')
 
-    if ((sparse_result.view(m, n) - dense_result) < 1e4).sum().item() == m * n:
-        print("Results match")
-    else:
-        print("Results don't match")
+    matrix = sparse_matrix.SparseMatrix(matrix=matrix_np)
+    #matrix.values = [matrix.values == 0] = -1e9
+
+    print(f'\nvalues: {matrix.values.size()}, row_indices: {matrix.row_indices.size()}, row_offsets: {matrix.row_offsets.size()}, column_indices: {matrix.column_indices.size()}')
+
+    for _ in range(30):
+        start = time.time()
+        sparse_result = torch_sputnik.sparse_softmax(matrix.values, matrix.row_indices, matrix.row_offsets, matrix.column_indices)
+        end = time.time()
+        sparse_time = end - start
+
+        dense_result, dense_time = softmax(matrix_np)
+
+        print(f'Sparse/Dense Time: {sparse_time / dense_time}')
+    
