@@ -36,7 +36,5 @@ torch::Tensor sparse_softmax(torch::Tensor values,
                                 stream));     
     }
 
-    cudaStreamSynchronize(stream);
-    
     return output;
 }

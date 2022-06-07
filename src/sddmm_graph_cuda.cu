@@ -4,14 +4,14 @@
 #include <c10/cuda/CUDAStream.h>
 #include "error_check.h"
 
-torch::Tensor sddmm(int m, int n,
+torch::Tensor sddmm_graph(int m, int n,
                            torch::Tensor row_indices,
                            torch::Tensor row_offsets,
                            torch::Tensor column_indices,
                            torch::Tensor lhs_matrix,
                            torch::Tensor rhs_matrix) {
-    at::cuda::CUDAStream torch_stream = at::cuda::getCurrentCUDAStream();
-    cudaStream_t stream = torch_stream.stream();
+    //at::cuda::CUDAStream torch_stream = at::cuda::getCurrentCUDAStream();
+    //cudaStream_t stream = torch_stream.stream();
 
     int nonzeros    = column_indices.size(-1);
     int dim_offset  = lhs_matrix.dim() - 2;
@@ -26,6 +26,15 @@ torch::Tensor sddmm(int m, int n,
 
     torch::Tensor output = replication == 1 ? torch::zeros({nonzeros}, options) : torch::zeros({replication, nonzeros}, options);
 
+    // Cuda Graph related part
+    cudaStream_t streamForGraph;
+    CUDA_CALL(cudaStreamCreate(&streamForGraph));
+
+    cudaGraph_t graph;
+    cudaGraphExec_t instance;
+    
+    CUDA_CALL(cudaStreamBeginCapture(streamForGraph, cudaStreamCaptureModeGlobal));
+
     for (int idx = 0; idx < replication; ++idx) {
       CUDA_CALL(sputnik::CudaSddmm(m, k, n, nonzeros, 
                                 row_indices.data_ptr<int>(), 
@@ -34,8 +43,14 @@ torch::Tensor sddmm(int m, int n,
                                 lhs_matrix.data_ptr<float>() + m * k * idx, 
                                 rhs_matrix.data_ptr<float>() + k * n * idx, 
                                 output.data_ptr<float>() + nonzeros * idx, 
-                                stream));
+                                streamForGraph));
     }
+    
+    CUDA_CALL(cudaStreamEndCapture(streamForGraph, &graph));
+    CUDA_CALL(cudaGraphInstantiate(&instance, graph, NULL, NULL, 0));
+
+    CUDA_CALL(cudaGraphLaunch(instance, streamForGraph));
+    cudaStreamSynchronize(streamForGraph);
     
     return output;
 }

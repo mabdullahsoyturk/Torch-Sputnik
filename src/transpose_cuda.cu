@@ -79,6 +79,5 @@ void csr_transpose(int m, int n,
         CUDA_R_32F, CUSPARSE_ACTION_NUMERIC, CUSPARSE_INDEX_BASE_ZERO,
         CUSPARSE_CSR2CSC_ALG1, workspace.data_ptr<float>()));
 
-    cudaDeviceSynchronize();
     cusparseDestroy(handle);
 }

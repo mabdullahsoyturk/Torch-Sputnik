@@ -52,8 +52,7 @@ class Uniform(Connector):
       nnz = (nnz + self.round_to - 1) // self.round_to * self.round_to
       num_dormant = dense_weights.size - nnz
 
-    dormant_mask = np.random.choice(
-        dense_weights.size, num_dormant, replace=False)
+    dormant_mask = np.random.choice(dense_weights.size, num_dormant, replace=False)
 
     weights_shape = dense_weights.shape
     dense_weights = np.reshape(dense_weights, [-1])
