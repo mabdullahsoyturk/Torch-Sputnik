@@ -2,6 +2,20 @@
 
 This repository contains PyTorch bindings for [Sputnik](https://github.com/google-research/sputnik) library. Sputnik is a sparse linear algebra library. It is a standalone C++ library. You can find the Tensorflow bindings here: [Tensorflow Bindings](https://github.com/google-research/google-research/tree/master/sgk/sparse/ops).
 
+## Build
+
+```Bash
+docker build -t torchsputnik:latest .
+docker run -it --runtime=nvidia torchsputnik:latest
+```
+
+## Run
+
+```Bash
+python3 tests/test_spmm.py
+python3 tests/test_sddmm.py
+```
+
 ## Main Operations
 ![SpMM and SDDMM](figures/spmm_and_sddmm.png)
 
