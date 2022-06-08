@@ -19,7 +19,6 @@ setup(
             'src/softmax_cuda.cu',
             'src/transpose_cuda.cu'
         ],
-        #library_dirs=['/home/soyturk/bind-sputnik'],
         libraries=['sputnik', 'cusparse'],
         extra_link_args=['-L/usr/local/lib'],
         extra_compile_args=extra_compile_args),
