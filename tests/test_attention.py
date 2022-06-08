@@ -1,7 +1,6 @@
 import numpy as np
 import torch
 import torch_sputnik
-from torch.autograd import gradcheck
 
 import connectors
 import initializers
@@ -28,7 +27,7 @@ def dense_attention(batch_size=32, num_heads=8, m=72, k=64):
 if __name__ == "__main__":
     r, m, k, n, sparsity = 256, 72, 64, 72, 0.9
 
-    connector = connectors.Uniform(sparsity)
+    connector = connectors.Uniform(sparsity, round_to=4)
     initializer = initializers.Uniform()
 
     lhs_np = initializer([r, m, k])
@@ -43,7 +42,7 @@ if __name__ == "__main__":
     k3d = torch.from_numpy(rhs_np).to(torch.float32).cuda()
     v3d = torch.from_numpy(v_np).to(torch.float32).cuda()
 
-    print(f'\nq3d: {q3d.size()}, k3d: {k3d.size()}, v3d: {v3d.size()}')
+    print(f'\nq3d: {q3d.size()}, k3d: {k3d.size()}, v3d: {v3d.size()}, values: {topology.column_indices.size()}')
 
     ratio = 0.0
 
@@ -54,7 +53,7 @@ if __name__ == "__main__":
 
         # Softmax
         attention_weights = torch_sputnik.sparse_softmax(scores, topology.row_indices, topology.row_offsets, topology.column_indices)
-
+        
         # SpMM
         intermediate_token_representations = torch_sputnik.spmm(m, n, attention_weights,
                     topology.row_indices, 
@@ -62,6 +61,7 @@ if __name__ == "__main__":
                     topology.column_indices, 
                     v3d
         )
+        #print(f'\nq3d: {q3d.size()}, k3d: {k3d.size()}, v3d: {v3d.size()}, row_indices: {topology.row_indices.size()}, row_offsets: {topology.row_offsets.size()}, column_indices: {topology.column_indices.size()}, m: {m}, k: {k}, n: {n}, scores: {scores.size()}, attention_weights: {attention_weights.size()}, intermediate_token_representations: {intermediate_token_representations.size()}')
         end = time.time()
 
         sparse_time = end - start

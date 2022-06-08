@@ -89,7 +89,6 @@ if __name__ == '__main__':
     rhs_np = initializer([n, k])
     output_np = connector(np.ones([m, n]))
 
-    # TensorFlow graph.
     output_topology = sparse_matrix.SparseMatrix(matrix=output_np)
     lhs = torch.from_numpy(lhs_np).to(torch.float32).requires_grad_().cuda()
     rhs = torch.from_numpy(rhs_np).to(torch.float32).requires_grad_().cuda()
@@ -97,6 +96,3 @@ if __name__ == '__main__':
     sddmm = Sddmm.apply
 
     output = sddmm(m, n, output_topology.row_indices, output_topology.row_offsets, output_topology.column_indices, lhs, rhs)
-
-    print(output.size())
-

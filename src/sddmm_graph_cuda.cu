@@ -10,9 +10,6 @@ torch::Tensor sddmm_graph(int m, int n,
                            torch::Tensor column_indices,
                            torch::Tensor lhs_matrix,
                            torch::Tensor rhs_matrix) {
-    //at::cuda::CUDAStream torch_stream = at::cuda::getCurrentCUDAStream();
-    //cudaStream_t stream = torch_stream.stream();
-
     int nonzeros    = column_indices.size(-1);
     int dim_offset  = lhs_matrix.dim() - 2;
     int k           = lhs_matrix.size(dim_offset + 1);

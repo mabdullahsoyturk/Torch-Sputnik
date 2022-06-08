@@ -3,10 +3,6 @@ import abc
 import numpy as np
 import six
 
-# TODO(tgale): It would be better if we just used the weight initializers
-# from TensorFlow. Currently we do this because our weight connectors are
-# not TensorFlow ops, and this gives us flexibility to add weird weight
-# connectors that may be difficult to do in TensorFlow.
 class Initializer(six.with_metaclass(abc.ABCMeta)):
   """Defines API for a weight initializer."""
 

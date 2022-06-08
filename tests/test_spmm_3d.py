@@ -18,6 +18,8 @@ if __name__ == "__main__":
     mask = connector(initializer([m, k]))
     mask[mask != 0] = 1.0
 
+    print(np.expand_dims(mask, axis=0).shape)
+
     lhs_np = np.expand_dims(mask, axis=0) * initializer([r, m, k])
     rhs_np = initializer([r, k, n])
 

@@ -93,5 +93,3 @@ if __name__ == '__main__':
     spmm = Spmm.apply
 
     output = spmm(m, k, lhs.values, lhs.row_indices, lhs.row_offsets, lhs.column_indices, rhs)
-    
-    print(output.size())

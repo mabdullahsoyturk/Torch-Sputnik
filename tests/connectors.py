@@ -3,7 +3,6 @@ import abc
 import numpy as np
 import six
 
-
 class Connector(six.with_metaclass(abc.ABCMeta)):
   """Defines API for a weight connector."""
 

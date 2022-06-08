@@ -6,3 +6,4 @@ torch_sputnik.egg-info
 .vscode/
 utils/__pycache__/
 dist
+tests/__pycache__
