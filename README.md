@@ -47,3 +47,15 @@ def sparse_attention(q, k, v, mask)
   out = replicated_spmm(weights, topology, v_3d)
   return out.reshape_to_4d
 ```
+
+## Using SpMM As A PyTorch Autograd Function
+
+Check [tests/test_spmm_grad.py](tests/test_spmm_grad.py).
+
+## Using SDDMM As A PyTorch Autograd Function
+
+Check [tests/test_sddmm_grad.py](tests/test_sddmm_grad.py).
+
+## Using Sparse Attention As A PyTorch Module
+
+Check [SparseAttention.py](modules/SparseAttention.py)
