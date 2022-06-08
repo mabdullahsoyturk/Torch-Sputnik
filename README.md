@@ -58,4 +58,4 @@ Check [tests/test_sddmm_grad.py](tests/test_sddmm_grad.py).
 
 ## Using Sparse Attention As A PyTorch Module
 
-Check [SparseAttention.py](modules/SparseAttention.py)
+Check [modules/sparse_attention.py](modules/sparse_attention.py)
