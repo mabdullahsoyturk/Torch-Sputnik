@@ -45,9 +45,9 @@ void csr_transpose(
 
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   m.def("spmm", &spmm, "Sparse Matrix Matrix Multiplication: AxB");
-  m.def("spmm_graph", &spmm_graph, "Sparse Matrix Matrix Multiplication: AxB");
+  m.def("spmm_graph", &spmm_graph, "Sparse Matrix Matrix Multiplication: AxB with CUDA Graph");
   m.def("sddmm", &sddmm, "Sampled Dense Dense Matrix Multiplication: (AxB).C = D");
-  m.def("sddmm_graph", &sddmm_graph, "Sampled Dense Dense Matrix Multiplication: (AxB).C = D");
+  m.def("sddmm_graph", &sddmm_graph, "Sampled Dense Dense Matrix Multiplication: (AxB).C = D with CUDA Graph");
   m.def("sparse_softmax", &sparse_softmax, "Computes softmax function across the last dim of a sparse matrix");
   m.def("csr_transpose", &csr_transpose, "Transpose sparse matrix");
 }
