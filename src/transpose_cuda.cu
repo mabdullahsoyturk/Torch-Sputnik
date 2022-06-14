@@ -1,6 +1,7 @@
 #include <sputnik/sputnik.h>
 #include <torch/extension.h>
 #include <ATen/ATen.h>
+#include <ATen/cuda/CUDAContext.h>
 #include <c10/cuda/CUDAStream.h>
 #include <cusparse.h>
 #include "error_check.h"
@@ -48,8 +49,7 @@ void csr_transpose(int m, int n,
                    torch::Tensor output_row_offsets,
                    torch::Tensor output_column_indices) {
 
-    cusparseHandle_t handle = NULL;
-    CUSPARSE_CALL(cusparseCreate(&handle));
+    cusparseHandle_t handle = at::cuda::getCurrentCUDASparseHandle();
 
     int nonzeros = values.size(-1);
 
@@ -78,6 +78,4 @@ void csr_transpose(int m, int n,
         output_column_indices.data_ptr<int>(),
         CUDA_R_32F, CUSPARSE_ACTION_NUMERIC, CUSPARSE_INDEX_BASE_ZERO,
         CUSPARSE_CSR2CSC_ALG1, workspace.data_ptr<float>()));
-
-    cusparseDestroy(handle);
 }
