@@ -33,7 +33,7 @@ if __name__ == "__main__":
     print(sparse_result)
     print(sparse.t())
 
-    if ((sparse_result - sparse.t()) < 1e4).sum().item() == m * n:
+    if ((sparse_result - sparse.t()) < 1e-4).sum().item() == m * n:
         print("Results match")
     else:
         print("Results don't match")

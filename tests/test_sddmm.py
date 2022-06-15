@@ -14,7 +14,7 @@ def mm(sparse, lhs_matrix, rhs_matrix, m, k, n):
     return result
 
 if __name__ == "__main__":
-    m, k, n, sparsity = 72, 64, 72, 0.9
+    m, k, n, sparsity = 72, 64, 72, 0.0
 
     # Helpers to set up the matrices.
     connector = connectors.Uniform(sparsity)
@@ -29,22 +29,10 @@ if __name__ == "__main__":
     lhs = torch.from_numpy(lhs_np).to(torch.float32).cuda()
     rhs = torch.from_numpy(rhs_np).to(torch.float32).cuda()
     
-    for _ in range(30):
-        start = time.time()
-        sparse_result = torch_sputnik.sddmm(m, n, topology.row_indices, topology.row_offsets, topology.column_indices, lhs, rhs)
-        end = time.time()
+    sparse_result = torch_sputnik.sddmm(m, n, topology.row_indices, topology.row_offsets, topology.column_indices, lhs, rhs)
+    dense_result = mm(torch.from_numpy(output_np).cuda(), lhs, rhs, m, k, n)
 
-        sparse_time = end - start
-
-        start = time.time()
-        dense_result = mm(torch.from_numpy(output_np).cuda(), lhs, rhs, m, k, n)
-        end = time.time()
-
-        dense_time = end - start
-
-        print(f'Sparse/Dense Time: {sparse_time / dense_time}')
-
-    # if ((sparse_result.view(r, m, n) - dense_result) < 1e4).sum().item() == r * m * n:
-    #     print("Results match")
-    # else:
-    #     print("Results don't match")
+    if ((sparse_result.view(m, n) - dense_result) < 1e-4).sum().item() == m * n:
+         print("Results match")
+    else:
+        print("Results don't match")

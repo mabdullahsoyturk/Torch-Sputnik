@@ -33,22 +33,9 @@ if __name__ == "__main__":
 
     print(f'\nlhs: {lhs.size()}, rhs: {rhs.size()}')
     
-    for _ in range(30):
-        start = time.time()
-        sparse_result = torch_sputnik.sddmm(m, n, topology.row_indices, topology.row_offsets, topology.column_indices, lhs, rhs)
-        end = time.time()
+    sparse_result = torch_sputnik.sddmm(m, n, topology.row_indices, topology.row_offsets, topology.column_indices, lhs, rhs)
 
-        sparse_time = end - start
+    dense_result = mm(torch.from_numpy(output_np).cuda(), lhs, rhs, r, m, k, n)
 
-        start = time.time()
-        dense_result = mm(torch.from_numpy(output_np).cuda(), lhs, rhs, r, m, k, n)
-        end = time.time()
-
-        dense_time = end - start
-
-        print(f'Sparse/Dense Time: {sparse_time / dense_time}')
-
-    # if ((sparse_result.view(r, m, n) - dense_result) < 1e4).sum().item() == r * m * n:
-    #     print("Results match")
-    # else:
-    #     print("Results don't match")
+    print(sparse_result.size())
+    print(dense_result.size())

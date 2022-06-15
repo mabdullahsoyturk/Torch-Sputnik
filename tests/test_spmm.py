@@ -16,7 +16,7 @@ def spmm(sparse, dense, m, k, n):
     return result
 
 if __name__ == "__main__":
-    m, k, n, sparsity = 72, 64, 72, 0.90
+    m, k, n, sparsity = 72, 64, 72, 0.00
     
     connector = connectors.Uniform(sparsity, round_to=4)
     initializer = initializers.Uniform()
@@ -32,17 +32,13 @@ if __name__ == "__main__":
 
     print(f'\nlhs: {lhs.size()}, rhs: {rhs.size()}')
 
-    for _ in range(30):
-        start = time.time()
-        sparse_result = torch_sputnik.spmm(m, k, lhs, topology.row_indices, topology.row_offsets, topology.column_indices, rhs)
-        end = time.time()
-        sparse_time = end - start
+    sparse_result = torch_sputnik.spmm(m, k, lhs, topology.row_indices, topology.row_offsets, topology.column_indices, rhs)
 
-        left = torch.from_numpy(lhs_np).to(torch.float32).cuda()
+    left = torch.from_numpy(lhs_np).to(torch.float32).cuda()
 
-        start = time.time()
-        dense_result = mm(left, rhs, m, k, n)
-        end = time.time()
-        dense_time = end - start
+    dense_result = mm(left, rhs, m, k, n)
 
-        print(f'Sparse/Dense Time: {sparse_time / dense_time}')
+    if ((abs(sparse_result) - abs(dense_result)) < 1e-3).sum() == m * n:
+        print("Output matches")
+    else:
+        print("Doesn't match")
