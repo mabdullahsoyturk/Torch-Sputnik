@@ -10,7 +10,7 @@ def mm(sparse, dense, replicaiton, m, k, n):
     return torch.matmul(sparse, dense)
 
 if __name__ == "__main__":
-    r, m, k, n, sparsity = 256, 72, 64, 72, 0.0
+    r, m, k, n, sparsity = 256, 72, 64, 72, 0.9
     
     connector = connectors.Uniform(sparsity, round_to=4)
     initializer = initializers.Uniform()

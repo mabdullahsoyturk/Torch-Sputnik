@@ -32,15 +32,15 @@ if __name__ == "__main__":
 
     print(f'\nlhs: {lhs.size()}, rhs: {rhs.size()}')
 
-    sparse_result = torch_sputnik.spmm(m, k, lhs, topology.row_indices, topology.row_offsets, topology.column_indices, rhs)
-    print(sparse_result)
+    bias = torch.ones(m).cuda()
+
+    sparse_result = torch_sputnik.spmm_bias(m, k, lhs, topology.row_indices, topology.row_offsets, topology.column_indices, bias, rhs)
 
     left = torch.from_numpy(lhs_np).to(torch.float32).cuda()
 
     dense_result = mm(left, rhs, m, k, n)
-    print(dense_result)
 
-    if ((abs(sparse_result) - abs(dense_result)) < 1e-2).sum() == m * n:
+    if ((abs(sparse_result) - abs(dense_result + 1)) < 1e-2).sum() == m * n:
         print("Output matches")
     else:
         print("Doesn't match")

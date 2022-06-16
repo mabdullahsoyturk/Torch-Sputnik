@@ -3,8 +3,8 @@ from torch.utils.cpp_extension import BuildExtension, CUDAExtension
 
 extra_compile_args = {'cxx' : ['-O2']}
 extra_compile_args['nvcc'] = ['-O3',
-                              '-gencode', 'arch=compute_86,code=compute_86',
-                              '-gencode', 'arch=compute_86,code=sm_86'
+                              '-gencode', 'arch=compute_80,code=compute_80',
+                              '-gencode', 'arch=compute_80,code=sm_80'
                               ]
 
 setup(
@@ -13,6 +13,7 @@ setup(
         CUDAExtension('torch_sputnik', [
             'src/sputnik.cpp',
             'src/spmm_cuda.cu',
+            'src/spmm_bias_relu_cuda.cu',
             'src/spmm_graph_cuda.cu',
             'src/sddmm_cuda.cu',
             'src/sddmm_graph_cuda.cu',

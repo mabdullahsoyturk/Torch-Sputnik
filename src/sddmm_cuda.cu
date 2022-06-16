@@ -4,16 +4,17 @@
 #include <c10/cuda/CUDAStream.h>
 #include "error_check.h"
 
-#define CHECK_CONTIGUOUS(x) TORCH_CHECK(x.is_contiguous(), #x " must be contiguous")
-
 torch::Tensor sddmm(int m, int n,
                            torch::Tensor row_indices,
                            torch::Tensor row_offsets,
                            torch::Tensor column_indices,
                            torch::Tensor lhs_matrix,
                            torch::Tensor rhs_matrix) {
-    CHECK_CONTIGUOUS(lhs_matrix);
-    CHECK_CONTIGUOUS(rhs_matrix);
+    CHECK_INPUT(row_indices);
+    CHECK_INPUT(row_offsets);
+    CHECK_INPUT(column_indices);
+    CHECK_INPUT(lhs_matrix);
+    CHECK_INPUT(rhs_matrix);
                             
     at::cuda::CUDAStream torch_stream = at::cuda::getCurrentCUDAStream();
     cudaStream_t stream = torch_stream.stream();

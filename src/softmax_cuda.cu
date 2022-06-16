@@ -8,6 +8,11 @@ torch::Tensor sparse_softmax(torch::Tensor values,
                       torch::Tensor row_indices,
                       torch::Tensor row_offsets,
                       torch::Tensor column_indices) {
+    CHECK_INPUT(values);
+    CHECK_INPUT(row_indices);
+    CHECK_INPUT(row_offsets);
+    CHECK_INPUT(column_indices);
+    
     at::cuda::CUDAStream torch_stream = at::cuda::getCurrentCUDAStream();
     cudaStream_t stream = torch_stream.stream();
 

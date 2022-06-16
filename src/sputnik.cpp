@@ -8,6 +8,14 @@ torch::Tensor spmm(int m, int k,
                     torch::Tensor column_indices,
                     torch::Tensor dense_matrix);
 
+torch::Tensor spmm_bias_relu(int m, int k,
+                    torch::Tensor values, 
+                    torch::Tensor row_indices,
+                    torch::Tensor row_offsets, 
+                    torch::Tensor column_indices,
+                    torch::Tensor bias,
+                    torch::Tensor dense_matrix);
+
 torch::Tensor spmm_graph(int m, int k,
                     torch::Tensor values, 
                     torch::Tensor row_indices,
@@ -45,6 +53,7 @@ void csr_transpose(
 
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   m.def("spmm", &spmm, "Sparse Matrix Matrix Multiplication: AxB");
+  m.def("spmm_bias_relu", &spmm_bias_relu, "RELU(Sparse Matrix Matrix Multiplication + bias): RELU(AxB + bias)");
   m.def("spmm_graph", &spmm_graph, "Sparse Matrix Matrix Multiplication: AxB with CUDA Graph");
   m.def("sddmm", &sddmm, "Sampled Dense Dense Matrix Multiplication: (AxB).C = D");
   m.def("sddmm_graph", &sddmm_graph, "Sampled Dense Dense Matrix Multiplication: (AxB).C = D with CUDA Graph");

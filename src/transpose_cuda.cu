@@ -48,6 +48,12 @@ void csr_transpose(int m, int n,
                    torch::Tensor output_values,
                    torch::Tensor output_row_offsets,
                    torch::Tensor output_column_indices) {
+    CHECK_INPUT(values);
+    CHECK_INPUT(row_offsets);
+    CHECK_INPUT(column_indices);
+    CHECK_INPUT(output_values);
+    CHECK_INPUT(output_row_offsets);
+    CHECK_INPUT(output_column_indices);
 
     cusparseHandle_t handle = at::cuda::getCurrentCUDASparseHandle();
 
