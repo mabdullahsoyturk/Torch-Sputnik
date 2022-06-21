@@ -13,7 +13,6 @@ torch::Tensor sddmm(int m, int n,
     CHECK_INPUT(row_indices);
     CHECK_INPUT(row_offsets);
     CHECK_INPUT(column_indices);
-    CHECK_INPUT(lhs_matrix);
     CHECK_INPUT(rhs_matrix);
                             
     at::cuda::CUDAStream torch_stream = at::cuda::getCurrentCUDAStream();

@@ -13,6 +13,7 @@ setup(
         CUDAExtension('torch_sputnik', [
             'src/sputnik.cpp',
             'src/spmm_cuda.cu',
+            'src/left_replicated_spmm.cu',
             'src/spmm_bias_relu_cuda.cu',
             'src/spmm_graph_cuda.cu',
             'src/sddmm_cuda.cu',
