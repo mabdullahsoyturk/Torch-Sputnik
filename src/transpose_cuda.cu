@@ -34,7 +34,7 @@ torch::Tensor allocate_transpose_workspace(cusparseHandle_t* handle,
     
     auto options = torch::TensorOptions()
                         .dtype(torch::kFloat32)
-                        .device(torch::kCUDA, 0);
+                        .device(torch::kCUDA, values.device().index());
 
     torch::Tensor workspace = torch::zeros({buffer_size_signed}, options);
 

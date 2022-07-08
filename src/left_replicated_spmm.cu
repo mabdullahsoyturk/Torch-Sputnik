@@ -10,11 +10,11 @@ torch::Tensor left_spmm(int m, int k,
                torch::Tensor row_offsets, 
                torch::Tensor column_indices,
                torch::Tensor dense_matrix) {
-    CHECK_INPUT(values);
+    //CHECK_INPUT(values);
     CHECK_INPUT(row_indices);
     CHECK_INPUT(row_offsets);
     CHECK_INPUT(column_indices);
-    CHECK_INPUT(dense_matrix);
+    //CHECK_INPUT(dense_matrix);
 
     at::cuda::CUDAStream torch_stream = at::cuda::getCurrentCUDAStream();
     cudaStream_t stream = torch_stream.stream();
@@ -27,8 +27,7 @@ torch::Tensor left_spmm(int m, int k,
     auto options = torch::TensorOptions()
                                         .dtype(torch::kFloat32)
                                         .layout(torch::kStrided)
-                                        .device(torch::kCUDA, values.device().index())
-                                        .requires_grad(true);
+                                        .device(torch::kCUDA, values.device().index());
 
     torch::Tensor out = replication == 1 ? torch::zeros({m, n}, options) : torch::zeros({replication, m, n}, options);
 

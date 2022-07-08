@@ -24,8 +24,7 @@ torch::Tensor left_spmm_graph(int m, int k,
     auto options = torch::TensorOptions()
                                         .dtype(torch::kFloat32)
                                         .layout(torch::kStrided)
-                                        .device(torch::kCUDA, values.device().index())
-                                        .requires_grad(true);
+                                        .device(torch::kCUDA, values.device().index());
 
     torch::Tensor out = replication == 1 ? torch::zeros({m, n}, options) : torch::zeros({replication, m, n}, options);
 
