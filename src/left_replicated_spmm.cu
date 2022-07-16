@@ -29,7 +29,7 @@ torch::Tensor left_spmm(int m, int k,
                                         .layout(torch::kStrided)
                                         .device(torch::kCUDA, values.device().index());
 
-    torch::Tensor out = replication == 1 ? torch::zeros({m, n}, options) : torch::zeros({replication, m, n}, options);
+    torch::Tensor out = torch::zeros({replication, m, n}, options);
 
     for (int idx = 0; idx < replication; ++idx) {
       CUDA_CALL(sputnik::CudaSpmm(m, k, n, nonzeros, 
