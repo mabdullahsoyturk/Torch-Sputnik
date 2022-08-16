@@ -25,7 +25,8 @@ class SparseLinear(nn.Module):
         self.output_features = output_features
 
     def forward(self, x):
-        return SparseLinearFunction.apply(8, 8, self.values, self.row_indices, self.row_offsets, self.column_indices, self.bias, x.transpose(-1, -2).contiguous())
+        print(f'x: {x.size()}, values: {self.values.size()}, row_indices: {self.row_indices.size()}')
+        return SparseLinearFunction.apply(3072, 768, self.values, self.row_indices, self.row_offsets, self.column_indices, self.bias, x.transpose(1, 2).contiguous())
 
 class SparseLinearFunction(torch.autograd.Function):
     @staticmethod
@@ -37,9 +38,9 @@ class SparseLinearFunction(torch.autograd.Function):
         ctx.column_indices = column_indices
         ctx.save_for_backward(values, dense)
 
-        result = torch_sputnik.left_spmm(m, k, values, row_indices, row_offsets, column_indices, dense) + bias
+        result = torch_sputnik.left_spmm(m, k, values, row_indices, row_offsets, column_indices, dense).transpose(1,2) + bias
 
-        print(f'result size: {result.size()}')
+        #print(f'result size: {result.size()}')
 
         return result
 
@@ -98,31 +99,34 @@ def copy_params(linear, sparse_linear):
     sparse_linear.bias = nn.Parameter(linear.bias.detach().clone())
 
 if __name__ == '__main__':
-    batch_size = 1
-    m, k, n = 8, 8, 8
-    input_features, output_features = 8, 8
+    batch_size = 4
+    m, k = 512, 768
+    input_features, output_features = 768, 3072
     
     linear = nn.Linear(input_features, output_features).cuda()
     linear.bias = nn.Parameter(torch.ones_like(linear.bias))
+    print(f'Linear weight: {linear.weight.size()}, Linear bias: {linear.bias.size()}')
     #prune.random_unstructured(linear, name="weight", amount=0.9)
     #prune.remove(linear, 'weight')
     
     sparse_linear = SparseLinear(input_features, output_features).cuda()
 
-    x = torch.randn(batch_size, k, n).cuda()
+    x = torch.randn(batch_size, m, k).cuda()
 
     dense_output = linear(x)
-    #print(dense_output)
+    print(dense_output)
 
     copy_params(linear, sparse_linear)
     
-    sparse_output = sparse_linear(x).transpose(-1, -2)
-    #print(sparse_output)
+    sparse_output = sparse_linear(x)
+    print(sparse_output)
 
     if ((abs(dense_output) - abs(sparse_output)) < 1e-2).sum() == batch_size * m * output_features:
         print("Output matches")
     else:
         print("Doesn't match")
+    torch.cuda.synchronize()
+    exit()
 
     dummy = torch.ones_like(sparse_output)
     
