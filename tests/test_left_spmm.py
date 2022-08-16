@@ -2,7 +2,6 @@ import torch
 import torch.nn as nn
 import torch_sputnik
 import torch.nn.utils.prune as prune
-from torch.autograd import gradcheck
 
 torch.manual_seed(0)
 
@@ -20,20 +19,17 @@ def diffsort(offsets):
   return torch.argsort(diffs, descending=True).to(torch.int32)
 
 class SparseLinear(nn.Module):
-    def __init__(self, input_features, output_features):
+    def __init__(self, input_features, output_features, bias=True):
         super(SparseLinear, self).__init__()
         self.input_features = input_features
         self.output_features = output_features
-        
-        self.weight = nn.Parameter(torch.empty(output_features, input_features))
 
     def forward(self, x):
-        values, row_indices, row_offsets, column_indices = dense_to_sparse(self.weight)
-        return SparseLinearFunction.apply(self.weight.size(0),self.weight.size(1), values, row_indices, row_offsets, column_indices, x.transpose(1,2).contiguous())
+        return SparseLinearFunction.apply(8, 8, self.values, self.row_indices, self.row_offsets, self.column_indices, self.bias, x.transpose(-1, -2).contiguous())
 
 class SparseLinearFunction(torch.autograd.Function):
     @staticmethod
-    def forward(ctx, m, k, values, row_indices, row_offsets, column_indices, dense):
+    def forward(ctx, m, k, values, row_indices, row_offsets, column_indices, bias, dense):
         ctx.m = m
         ctx.k = k
         ctx.row_indices = row_indices
@@ -41,7 +37,9 @@ class SparseLinearFunction(torch.autograd.Function):
         ctx.column_indices = column_indices
         ctx.save_for_backward(values, dense)
 
-        result = torch_sputnik.left_spmm(m, k, values, row_indices, row_offsets, column_indices, dense)
+        result = torch_sputnik.left_spmm(m, k, values, row_indices, row_offsets, column_indices, dense) + bias
+
+        print(f'result size: {result.size()}')
 
         return result
 
@@ -54,7 +52,7 @@ class SparseLinearFunction(torch.autograd.Function):
         column_indices = ctx.column_indices
         values, dense = ctx.saved_tensors
 
-        grad_m = grad_k = grad_values = grad_row_indices = grad_row_offsets = grad_column_indices = grad_dense = None
+        grad_m = grad_k = grad_values = grad_row_indices = grad_row_offsets = grad_column_indices = grad_bias = grad_dense = None
 
         # sparse matrix grad
         grad_values = torch_sputnik.sddmm(m, k,
@@ -79,48 +77,73 @@ class SparseLinearFunction(torch.autograd.Function):
         row_indices_t = diffsort(row_offsets_t)
 
         # dense matrix grad
-        grad_dense = torch_sputnik.spmm(k, m, 
+        grad_dense = torch_sputnik.left_spmm(k, m, 
                                         values_t, 
                                         row_indices_t, 
                                         row_offsets_t, 
                                         column_indices_t, 
                                         grad_output.contiguous())
 
-        return grad_m, grad_k, grad_values, grad_row_indices, grad_row_offsets, grad_column_indices, grad_dense
+        grad_bias = grad_output.sum(0)
+
+        return grad_m, grad_k, grad_values, grad_row_indices, grad_row_offsets, grad_column_indices, grad_bias, grad_dense
 
 def copy_params(linear, sparse_linear):
-    sparse_linear.weight = nn.Parameter(linear.weight.detach().clone())
+    values, row_indices, row_offsets, column_indices = dense_to_sparse(linear.weight.detach().clone())
+    sparse_linear.values = nn.Parameter(values)
+    sparse_linear.row_indices = row_indices
+    sparse_linear.row_offsets = row_offsets
+    sparse_linear.column_indices = column_indices
+    
+    sparse_linear.bias = nn.Parameter(linear.bias.detach().clone())
 
 if __name__ == '__main__':
-    batch_size = 32
-    m, k, n = 1024, 768, 512
+    batch_size = 1
+    m, k, n = 8, 8, 8
+    input_features, output_features = 8, 8
     
-    linear = nn.Linear(k, m).cuda()
-    linear.bias = nn.Parameter(torch.zeros_like(linear.bias))
+    linear = nn.Linear(input_features, output_features).cuda()
+    linear.bias = nn.Parameter(torch.ones_like(linear.bias))
     #prune.random_unstructured(linear, name="weight", amount=0.9)
     #prune.remove(linear, 'weight')
+    
+    sparse_linear = SparseLinear(input_features, output_features).cuda()
 
-    sparse_linear = SparseLinear(k, m).cuda()
-
-    x = torch.randn(batch_size, n, k).cuda()
+    x = torch.randn(batch_size, k, n).cuda()
 
     dense_output = linear(x)
-    print(dense_output)
-    print(f'dense_output size: {dense_output.size()}')
+    #print(dense_output)
 
     copy_params(linear, sparse_linear)
+    
+    sparse_output = sparse_linear(x).transpose(-1, -2)
+    #print(sparse_output)
 
-    sparse_output = sparse_linear(x).transpose(1,2)
-    print(sparse_output)
-    print(f'sparse_output size: {sparse_output.size()}')
-
-    if ((abs(dense_output) - abs(sparse_output)) < 1e-2).sum() == m * n * batch_size:
+    if ((abs(dense_output) - abs(sparse_output)) < 1e-2).sum() == batch_size * m * output_features:
         print("Output matches")
     else:
         print("Doesn't match")
 
     dummy = torch.ones_like(sparse_output)
-    loss = (dummy - sparse_output).sum()
-    loss.backward()
     
-    print(loss.grad)
+    dense_loss = (dummy - dense_output).sum()
+    dense_loss.backward()
+    
+    sparse_loss = (dummy - sparse_output).sum()
+    sparse_loss.backward()
+    
+    for name, param in linear.named_parameters():
+        if name == 'weight':
+            weight_grad = param.grad
+            print(param)
+        print(f'Param Name: {name}:  {param.grad}')
+    
+    for name, param in sparse_linear.named_parameters():
+        if name == 'values':
+            values_grad = param.grad
+        print(f'Param Name: {name}:  {param.grad}')
+        
+    if ((abs(values_grad.reshape(m, n)) - abs(weight_grad)) < 1e-2).sum() == batch_size * m * output_features:
+        print("Grad matches")
+    else:
+        print("Grad doesn't match")

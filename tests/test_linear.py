@@ -2,7 +2,6 @@ import torch
 import torch.nn as nn
 import torch_sputnik
 import torch.nn.utils.prune as prune
-from torch.autograd import gradcheck
 
 torch.manual_seed(0)
 
