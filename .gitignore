@@ -6,6 +6,5 @@ torch_sputnik.egg-info
 utils/__pycache__/
 dist
 tests/__pycache__
-tests/test_linear.py
 tests/bla.py
 *nsys-rep
