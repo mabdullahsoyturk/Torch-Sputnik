@@ -48,23 +48,17 @@ void csr_transpose(int m, int n,
                    torch::Tensor output_values,
                    torch::Tensor output_row_offsets,
                    torch::Tensor output_column_indices) {
-    CHECK_INPUT(values);
-    CHECK_INPUT(row_offsets);
-    CHECK_INPUT(column_indices);
-    CHECK_INPUT(output_values);
-    CHECK_INPUT(output_row_offsets);
-    CHECK_INPUT(output_column_indices);
+    /*--- CHECKS ---*/
+    assert(values.dim() == 1 || values.dim() == 2); // Values should have 1 or 2 dimensions
+    assert(row_offsets.dim() == 1); // Row offsets should have 1 dimension
+    assert(column_indices.dim() == 1); // Column indices should have 1 dimension
+    assert(values.size(0) == column_indices.size(0)); // Expected same number of values and indices
+    assert(row_offsets.size(0) == m + 1); // Expected m+1 row offsets
 
     cusparseHandle_t handle = at::cuda::getCurrentCUDASparseHandle();
 
     int nonzeros = values.size(-1);
 
-    auto options = torch::TensorOptions()
-                                        .dtype(torch::kFloat32)
-                                        .layout(torch::kStrided)
-                                        .device(torch::kCUDA, values.device().index())
-                                        .requires_grad(true);
-    
     torch::Tensor workspace = allocate_transpose_workspace(&handle, m, n, nonzeros, 
                                                         values, 
                                                         row_offsets, 

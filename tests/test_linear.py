@@ -90,6 +90,7 @@ class SparseLinearFunction(torch.autograd.Function):
 
 def copy_params(linear, sparse_linear):
     values, row_indices, row_offsets, column_indices = dense_to_sparse(linear.weight.detach().clone())
+    print(f'Row indices: {row_indices.size()}, Row offsets: {row_offsets.size()}')
     sparse_linear.values = nn.Parameter(values)
     sparse_linear.row_indices = row_indices
     sparse_linear.row_offsets = row_offsets
@@ -103,8 +104,8 @@ if __name__ == '__main__':
     
     linear = nn.Linear(input_features, output_features).cuda()
     linear.bias = nn.Parameter(torch.ones_like(linear.bias))
-    prune.random_unstructured(linear, name="weight", amount=0.9)
-    prune.remove(linear, 'weight')
+    #prune.random_unstructured(linear, name="weight", amount=0.9)
+    #prune.remove(linear, 'weight')
     
     sparse_linear = SparseLinear(input_features, output_features).cuda()
 
@@ -116,7 +117,7 @@ if __name__ == '__main__':
     copy_params(linear, sparse_linear)
     
     sparse_output = sparse_linear(x).t()
-    #print(sparse_output)
+    print(sparse_output)
 
     if ((abs(dense_output) - abs(sparse_output)) < 1e-2).sum() == m * output_features:
         print("Output matches")
@@ -142,7 +143,7 @@ if __name__ == '__main__':
             values_grad = param.grad
         print(f'Param Name: {name}:  {param.grad}')
         
-    # if ((abs(values_grad.reshape(m, n)) - abs(weight_grad)) < 1e-2).sum() == m * output_features:
-    #     print("Grad matches")
-    # else:
-    #     print("Grad doesn't match")
+    if ((abs(values_grad.reshape(m, n)) - abs(weight_grad)) < 1e-2).sum() == m * output_features:
+        print("Grad matches")
+    else:
+        print("Grad doesn't match")

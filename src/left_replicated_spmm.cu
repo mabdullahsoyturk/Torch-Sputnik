@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <sputnik/sputnik.h>
 #include <torch/extension.h>
 #include <ATen/ATen.h>
@@ -10,6 +11,10 @@ torch::Tensor left_spmm(int m, int k,
                torch::Tensor row_offsets, 
                torch::Tensor column_indices,
                torch::Tensor dense_matrix) {
+    // CHECK INPUTS
+    assert(values.dim() == 1 || values.dim() == 2); // Values should have 1 or 2 dimensions
+    
+
     //CHECK_INPUT(values);
     CHECK_INPUT(row_indices);
     CHECK_INPUT(row_offsets);
