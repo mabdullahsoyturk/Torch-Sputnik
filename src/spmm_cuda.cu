@@ -32,6 +32,7 @@ torch::Tensor spmm(int m, int k,
     int n = dense.size(dim_offset + 1);
 
     /*--- CHECKS ---*/
+    // Validate the sparse matrix and dense matrix shapes match.
     assert(values.size(dim_offset) == nonzeros); // Num values must equal num column indices
     assert(row_indices.size(0) == m); // Num row indices and 'm' must match
     assert(dense.size(dim_offset) == k); // Inner matrix dimensions must match

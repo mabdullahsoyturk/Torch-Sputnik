@@ -4,6 +4,7 @@
 #include <ATen/cuda/CUDAContext.h>
 #include <c10/cuda/CUDAStream.h>
 #include <cusparse.h>
+#include <vector>
 #include "error_check.h"
 
 torch::Tensor allocate_transpose_workspace(cusparseHandle_t* handle,
@@ -41,15 +42,12 @@ torch::Tensor allocate_transpose_workspace(cusparseHandle_t* handle,
     return workspace;
 }
 
-void csr_transpose(int m, int n,
+std::vector<torch::Tensor> csr_transpose(int m, int n,
                    torch::Tensor values, 
                    torch::Tensor row_offsets,
-                   torch::Tensor column_indices,
-                   torch::Tensor output_values,
-                   torch::Tensor output_row_offsets,
-                   torch::Tensor output_column_indices) {
+                   torch::Tensor column_indices) {
     /*--- CHECKS ---*/
-    assert(values.dim() == 1 || values.dim() == 2); // Values should have 1 or 2 dimensions
+    assert(values.dim() == 1); // Values should have 1 dimension
     assert(row_offsets.dim() == 1); // Row offsets should have 1 dimension
     assert(column_indices.dim() == 1); // Column indices should have 1 dimension
     assert(values.size(0) == column_indices.size(0)); // Expected same number of values and indices
@@ -57,8 +55,29 @@ void csr_transpose(int m, int n,
 
     cusparseHandle_t handle = at::cuda::getCurrentCUDASparseHandle();
 
-    int nonzeros = values.size(-1);
+    int nonzeros = values.size(0);
 
+    auto values_options = torch::TensorOptions()
+                                        .dtype(torch::kFloat32)
+                                        .layout(torch::kStrided)
+                                        .device(torch::kCUDA, values.device().index());
+
+    auto index_options = torch::TensorOptions()
+                                        .dtype(torch::kInt32)
+                                        .layout(torch::kStrided)
+                                        .device(torch::kCUDA, values.device().index());
+    
+
+    torch::Tensor output_values = torch::zeros({nonzeros}, values_options);
+    torch::Tensor output_row_offsets = torch::zeros({n + 1}, index_options);
+    torch::Tensor output_column_indices = torch::zeros({nonzeros}, index_options);
+
+    std::vector<torch::Tensor> out_vector;
+    out_vector.push_back(output_values);
+    out_vector.push_back(output_row_offsets);
+    out_vector.push_back(output_column_indices);
+
+    // (Possibly) get a temporary buffer to work in.
     torch::Tensor workspace = allocate_transpose_workspace(&handle, m, n, nonzeros, 
                                                         values, 
                                                         row_offsets, 
@@ -78,4 +97,6 @@ void csr_transpose(int m, int n,
         output_column_indices.data_ptr<int>(),
         CUDA_R_32F, CUSPARSE_ACTION_NUMERIC, CUSPARSE_INDEX_BASE_ZERO,
         CUSPARSE_CSR2CSC_ALG1, workspace.data_ptr<float>()));
+
+    return out_vector;
 }

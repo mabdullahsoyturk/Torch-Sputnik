@@ -9,14 +9,8 @@ import numpy as np
 def mm(sparse, dense, m, k, n):
     return torch.matmul(sparse, dense)
 
-def spmm(sparse, dense, m, k, n):
-    values, row_indices, row_offsets, column_indices = dense_to_sparse(sparse)
-    result = torch_sputnik.spmm(m, k, values, row_indices, row_offsets, column_indices, dense)
-
-    return result
-
 if __name__ == "__main__":
-    m, k, n, sparsity = 72, 64, 72, 0.00
+    m, k, n, sparsity = 72, 64, 72, 0.9
     
     connector = connectors.Uniform(sparsity, round_to=4)
     initializer = initializers.Uniform()
@@ -40,7 +34,7 @@ if __name__ == "__main__":
     dense_result = mm(left, rhs, m, k, n)
     print(dense_result)
 
-    if ((abs(sparse_result) - abs(dense_result)) < 1e-2).sum() == m * n:
+    if (torch.abs(sparse_result - dense_result) < 1e-2).sum() == m * n:
         print("Output matches")
     else:
         print("Doesn't match")

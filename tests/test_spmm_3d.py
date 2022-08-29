@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+import torch.nn as nn
 import torch_sputnik
 import connectors
 import initializers
@@ -11,6 +12,7 @@ def mm(sparse, dense, replicaiton, m, k, n):
 
 if __name__ == "__main__":
     r, m, k, n, sparsity = 256, 72, 64, 72, 0.9
+    criterion = nn.MSELoss()
     
     connector = connectors.Uniform(sparsity, round_to=4)
     initializer = initializers.Uniform()
@@ -26,7 +28,7 @@ if __name__ == "__main__":
     print(f'\nlhs_np: {lhs_np.shape}, rhs_np: {rhs_np.shape}, mask_np: {mask.shape}')
 
     topology = sparse_matrix.SparseTopology(mask=mask)
-    lhs = torch.from_numpy(np.reshape(lhs_np[lhs_np != 0], [r, -1])).to(torch.float32).cuda()
+    lhs = torch.from_numpy(np.reshape(lhs_np[lhs_np != 0], [r, -1])).to(torch.float32).cuda().requires_grad_(True)
     rhs = torch.from_numpy(rhs_np).to(torch.float32).cuda()
 
     print(f'\nlhs: {lhs.size()}, rhs: {rhs.size()}')
@@ -37,7 +39,8 @@ if __name__ == "__main__":
 
     dense_result = mm(left, rhs, r, m, k, n)
 
-    if ((abs(sparse_result.view(r, m, n)) - abs(dense_result)) < 1e-02).sum().item() == r * m * n:
+    print(f'Sparse Result Size: {sparse_result.size()}, Dense Result Size: {dense_result.size()}')
+    if ((sparse_result - dense_result) < 1e-2).sum().item() == r * m * n:
         print("Results match")
     else:
         print("Results don't match")

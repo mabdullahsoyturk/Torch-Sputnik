@@ -8,17 +8,19 @@ torch::Tensor sparse_softmax(torch::Tensor values,
                       torch::Tensor row_indices,
                       torch::Tensor row_offsets,
                       torch::Tensor column_indices) {
-    CHECK_INPUT(values);
-    CHECK_INPUT(row_indices);
-    CHECK_INPUT(row_offsets);
-    CHECK_INPUT(column_indices);
+    /*--- CHECKS ---*/
+    assert(values.dim() == 1 || values.dim() == 2); // Values should have 1 or 2 dimensions
+    assert(row_indices.dim() == 1); // Row indices should have 1 dimension
+    assert(row_offsets.dim() == 1); // Row offsets should have 1 dimension
+    assert(column_indices.dim() == 1); // Column indices should have 1 dimension
+    assert(row_indices.size(0) + 1 == row_offsets.size(0)); // Row offsets should have one more row than row indices
     
     at::cuda::CUDAStream torch_stream = at::cuda::getCurrentCUDAStream();
     cudaStream_t stream = torch_stream.stream();
 
-    int m = row_indices.size(-1);
+    int m = row_indices.size(0);
     int n = -1; // The kernel doesn't actually need the n argument. Pass garbage.
-    int nonzeros = column_indices.size(-1);
+    int nonzeros = column_indices.size(0);
 
     int dim_offset = values.dim() - 1;
     int replication = dim_offset == 1 ? values.size(0) : 1;
@@ -26,8 +28,7 @@ torch::Tensor sparse_softmax(torch::Tensor values,
     auto options = torch::TensorOptions()
                                         .dtype(torch::kFloat32)
                                         .layout(torch::kStrided)
-                                        .device(torch::kCUDA, values.device().index())
-                                        .requires_grad(true);
+                                        .device(torch::kCUDA, values.device().index());
     
     torch::Tensor output = torch::zeros_like(values, options);
 
