@@ -35,20 +35,13 @@ class Spmm(torch.autograd.Function):
                                         row_indices, 
                                         row_offsets, 
                                         column_indices,
-                                        grad_output, 
-                                        dense)
+                                        grad_output.contiguous(), 
+                                        dense.contiguous())
 
-        values_t = torch.zeros_like(values)
-        row_offsets_t = torch.zeros_like(row_offsets)
-        column_indices_t = torch.zeros_like(column_indices)
-
-        torch_sputnik.csr_transpose(m, k, 
-                                    values, 
-                                    row_offsets, 
-                                    column_indices, 
-                                    values_t, 
-                                    row_offsets_t, 
-                                    column_indices_t)
+        values_t, row_offsets_t, column_indices_t = torch_sputnik.csr_transpose(m, k, 
+                                                                                values, 
+                                                                                row_offsets, 
+                                                                                column_indices)
         
         row_indices_t = diffsort(row_offsets_t)
 
@@ -58,6 +51,6 @@ class Spmm(torch.autograd.Function):
                                         row_indices_t, 
                                         row_offsets_t, 
                                         column_indices_t, 
-                                        grad_output)
+                                        grad_output.contiguous())
 
         return grad_m, grad_k, grad_values, grad_row_indices, grad_row_offsets, grad_column_indices, grad_dense

@@ -70,7 +70,7 @@ class SparseLinearFunction(torch.autograd.Function):
                                                                                 row_offsets, 
                                                                                 column_indices)
         
-        row_indices_t = diffsort(row_offsets_t).contiguous()
+        row_indices_t = diffsort(row_offsets_t)
 
         # dense matrix grad
         grad_dense = torch_sputnik.spmm(k, m, 

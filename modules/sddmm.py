@@ -38,17 +38,11 @@ class Sddmm(torch.autograd.Function):
                                     column_indices, 
                                     rhs_matrix)
 
-        grad_t = torch.zeros_like(grad_output).t()
-        row_offsets_t = torch.zeros_like(row_offsets).t()
-        column_indices_t = torch.zeros_like(column_indices).t()
-
-        torch_sputnik.csr_transpose(m, n, 
+        #print(f'[SDDMM GRAD] values: {grad_output.size()}')
+        grad_t, row_offsets_t, column_indices_t = torch_sputnik.csr_transpose(m, n, 
                                     grad_output, 
                                     row_offsets, 
-                                    column_indices, 
-                                    grad_t, 
-                                    row_offsets_t, 
-                                    column_indices_t)
+                                    column_indices)
 
         row_indices_t = diffsort(row_offsets_t)
 
