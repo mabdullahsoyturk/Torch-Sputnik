@@ -14,6 +14,7 @@ docker run -it --runtime=nvidia torchsputnik:latest
 ```Bash
 python3 tests/test_spmm.py
 python3 tests/test_sddmm.py
+python3 tests/test_linear.py
 ```
 
 ## Main Operations
@@ -31,7 +32,7 @@ AxB = C where A is sparse. B and C are dense.
 
 ```Python
 def attention(q, k, v, mask)
-  scores = matmul(q, k, transpose_b=True)
+  scores = matmul(q, kT)
   scores._masked_fill(mask == 0, -inf)
   attention_weights = softmax(logits)
   return matmul(attention_weights, v)
@@ -40,7 +41,7 @@ def attention(q, k, v, mask)
 
 ```Python
 def sparse_attention(q, k, v, mask)
-  q_3d, k_3d, v_3d = [preprocess_attention_component(x) for x in [q, k, v]]
+  q_3d, k_3d, v_3d = [4d_to_3d(x) for x in [q, k, v]]
   topology = to_sparse(mask)
   logits = replicated_sddmm(q_3d, k_3d, topology)
   attention_weights = replicated_sparse_softmax(logits, topology)
@@ -48,17 +49,13 @@ def sparse_attention(q, k, v, mask)
   return out.reshape_to_4d
 ```
 
-## Using SpMM As A PyTorch Autograd Function
-
-Check [tests/test_spmm_grad.py](tests/test_spmm_grad.py).
-
-## Using SDDMM As A PyTorch Autograd Function
-
-Check [tests/test_sddmm_grad.py](tests/test_sddmm_grad.py).
-
-## Using Sparse Attention As A PyTorch Module
+## Using Sparse Attention Layer As A PyTorch Module
 
 Check [modules/sparse_attention.py](modules/sparse_attention.py)
+
+## Using Sparse Linear Layer As A PyTorch Module
+
+Check [modules/sparse_attention.py](modules/sparse_linear.py)
 
 ## Sputnik vs cuSPARSE Performance Comparison for SpMM
 
