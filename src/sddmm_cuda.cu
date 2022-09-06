@@ -15,7 +15,7 @@ torch::Tensor sddmm(int m, int n,
     assert(row_offsets.dim() == 1); // Row offsets should have 1 dimension
     assert(column_indices.dim() == 1); // Column indices should have 1 dimension
     assert(row_indices.size(0) + 1 == row_offsets.size(0)); // Row offsets should have one more row than row indices
-    assert(lhs_matrix.size(1) == rhs_matrix.size(1)); // Last dim of input matrices must match.
+    assert(lhs_matrix.size(-1) == rhs_matrix.size(-1)); // Last dim of input matrices must match.
     assert(lhs_matrix.dim() == 2 || lhs_matrix.dim() == 3); // Expected 2-dim or 3-dim lhs matrix tensor
     assert(rhs_matrix.dim() == 2 || rhs_matrix.dim() == 3); // Expected 2-dim or 3-dim rhs matrix tensor
     assert(lhs_matrix.dim() == rhs_matrix.dim()); // Rhs and lhs must match number of dims
