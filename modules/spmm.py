@@ -6,6 +6,24 @@ def diffsort(offsets):
   return torch.argsort(diffs, descending=True).to(torch.int32)
 
 class Spmm(torch.autograd.Function):
+    """ Sparse Matrix Multiplication
+    
+    Takes one sparse and one dense matrix as inputs. Performs the matrix multiplication. 
+    Sparse matrix is in CSR format. values, row indices, row_offsets and column indices 
+    represent the sparse matrix.
+    
+    Operation: SparseMatrix x DenseMatrix = DenseOutput 
+    
+    Arguments:
+        m: Number of rows in the sparse matrix.
+        k: Number of columns in the sparse matrix.
+        values: Nonzero elements in the sparse matrix.
+        row_indices: Row indices of the output matrix. This is needed for load balance in CUDA kernel.
+        row_offsets: Row offsets of the mask.
+        column_indices: Column indices of the nonzero elements.
+        dense: Dense matrix
+    """
+      
     @staticmethod
     def forward(ctx, m, k, values, row_indices, row_offsets, column_indices, dense):
         ctx.m = m
