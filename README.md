@@ -55,7 +55,7 @@ Check [modules/sparse_attention.py](modules/sparse_attention.py)
 
 ## Using Sparse Linear Layer As A PyTorch Module
 
-Check [modules/sparse_attention.py](modules/sparse_linear.py)
+Check [modules/sparse_linear.py](modules/sparse_linear.py)
 
 ## Sputnik vs cuSPARSE Performance Comparison for SpMM
 
