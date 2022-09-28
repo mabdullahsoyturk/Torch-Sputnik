@@ -10,12 +10,6 @@ torch::Tensor left_spmm_graph(int m, int k,
                torch::Tensor row_offsets, 
                torch::Tensor column_indices,
                torch::Tensor dense_matrix) {
-    //CHECK_INPUT(values);
-    CHECK_INPUT(row_indices);
-    CHECK_INPUT(row_offsets);
-    CHECK_INPUT(column_indices);
-    //CHECK_INPUT(dense_matrix);
-
     int nonzeros = column_indices.size(-1);
     int dim_offset = dense_matrix.dim() - 2;
     int n = dense_matrix.size(dim_offset + 1);

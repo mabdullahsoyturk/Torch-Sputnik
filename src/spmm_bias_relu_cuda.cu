@@ -11,12 +11,6 @@ torch::Tensor spmm_bias_relu(int m, int k,
                torch::Tensor column_indices,
                torch::Tensor bias,
                torch::Tensor dense_matrix) {
-    CHECK_INPUT(values);
-    CHECK_INPUT(row_indices);
-    CHECK_INPUT(row_offsets);
-    CHECK_INPUT(column_indices);
-    CHECK_INPUT(dense_matrix);
-
     at::cuda::CUDAStream torch_stream = at::cuda::getCurrentCUDAStream();
     cudaStream_t stream = torch_stream.stream();
 

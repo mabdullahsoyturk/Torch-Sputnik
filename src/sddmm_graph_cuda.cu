@@ -10,11 +10,6 @@ torch::Tensor sddmm_graph(int m, int n,
                            torch::Tensor column_indices,
                            torch::Tensor lhs_matrix,
                            torch::Tensor rhs_matrix) {
-    CHECK_INPUT(row_indices);
-    CHECK_INPUT(row_offsets);
-    CHECK_INPUT(column_indices);
-    CHECK_INPUT(lhs_matrix);
-    CHECK_INPUT(rhs_matrix);
     int nonzeros    = column_indices.size(-1);
     int dim_offset  = lhs_matrix.dim() - 2;
     int k           = lhs_matrix.size(dim_offset + 1);

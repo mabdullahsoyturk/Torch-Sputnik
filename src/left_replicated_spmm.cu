@@ -14,13 +14,6 @@ torch::Tensor left_spmm(int m, int k,
     // CHECK INPUTS
     assert(values.dim() == 1 || values.dim() == 2); // Values should have 1 or 2 dimensions
     
-
-    //CHECK_INPUT(values);
-    CHECK_INPUT(row_indices);
-    CHECK_INPUT(row_offsets);
-    CHECK_INPUT(column_indices);
-    //CHECK_INPUT(dense_matrix);
-
     at::cuda::CUDAStream torch_stream = at::cuda::getCurrentCUDAStream();
     cudaStream_t stream = torch_stream.stream();
 

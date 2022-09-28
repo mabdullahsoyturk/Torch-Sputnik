@@ -2,16 +2,20 @@ import torch
 import torch.nn as nn
 import torch_sputnik
 
-def dense_to_sparse(matrix):
-     csr = matrix.to_sparse_csr()
-     values = csr.values().clone().detach()
-     row_offsets = csr.crow_indices().clone().detach().to(torch.int32)
-     row_indices = diffsort(row_offsets).to(torch.int32)
-     column_indices = csr.col_indices().clone().detach().to(torch.int32)
+def diffsort(offsets):
+    diffs = (offsets - torch.roll(offsets, -1, 0))[:-1]
+    return torch.argsort(diffs, descending=True)
 
-     return values, row_indices, row_offsets, column_indices
+def dense_to_sparse(matrix):
+    csr = matrix.to_sparse_csr()
+    values = csr.values().clone().detach()
+    row_offsets = csr.crow_indices().clone().detach().to(torch.int32)
+    row_indices = diffsort(row_offsets).to(torch.int32)
+    column_indices = csr.col_indices().clone().detach().to(torch.int32)
+
+    return values, row_indices, row_offsets, column_indices
  
- class SparseLinearFunction(torch.autograd.Function):
+class SparseLinearFunction(torch.autograd.Function):
     @staticmethod
     def forward(ctx, m, k, values, row_indices, row_offsets, column_indices, dense):
         ctx.m = m
