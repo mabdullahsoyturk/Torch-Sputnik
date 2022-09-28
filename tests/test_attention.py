@@ -13,14 +13,19 @@ def dense_attention(batch_size=32, num_heads=8, m=72, k=64):
     key = torch.rand((batch_size, num_heads, m, k))
     value = torch.rand((batch_size, num_heads, m, k))
 
-    start = time.time()
+    start = torch.cuda.Event(enable_timing=True)
+    end = torch.cuda.Event(enable_timing=True)
+
+    start.record()
     scores = torch.matmul(query, key.transpose(-2, -1)) / math.sqrt(64)
 
     attention_weights = scores.softmax(dim=-1)
         
     representations = torch.matmul(attention_weights, value)
-    end = time.time()
-    dense_time = end - start
+    end.record()
+    torch.cuda.synchronize()
+
+    dense_time = start.elapsed_time(end)
     
     return dense_time
 
@@ -47,7 +52,10 @@ if __name__ == "__main__":
     ratio = 0.0
 
     for _ in range(200):
-        start = time.time()
+        start = torch.cuda.Event(enable_timing=True)
+        end = torch.cuda.Event(enable_timing=True)
+
+        start.record()
         # SDDMM
         scores = torch_sputnik.sddmm(m, n, topology.row_indices, topology.row_offsets, topology.column_indices, q3d, k3d)
 
@@ -61,10 +69,11 @@ if __name__ == "__main__":
                     topology.column_indices, 
                     v3d
         )
-        #print(f'\nq3d: {q3d.size()}, k3d: {k3d.size()}, v3d: {v3d.size()}, row_indices: {topology.row_indices.size()}, row_offsets: {topology.row_offsets.size()}, column_indices: {topology.column_indices.size()}, m: {m}, k: {k}, n: {n}, scores: {scores.size()}, attention_weights: {attention_weights.size()}, intermediate_token_representations: {intermediate_token_representations.size()}')
-        end = time.time()
+        end.record()
+        torch.cuda.synchronize()
 
-        sparse_time = end - start
+        #print(f'\nq3d: {q3d.size()}, k3d: {k3d.size()}, v3d: {v3d.size()}, row_indices: {topology.row_indices.size()}, row_offsets: {topology.row_offsets.size()}, column_indices: {topology.column_indices.size()}, m: {m}, k: {k}, n: {n}, scores: {scores.size()}, attention_weights: {attention_weights.size()}, intermediate_token_representations: {intermediate_token_representations.size()}')
+        sparse_time = start.elapsed_time(end)
 
         dense_time = dense_attention()
 
