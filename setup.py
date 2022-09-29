@@ -17,9 +17,12 @@ setup(
             'src/left_replicated_spmm_graph.cu',
             'src/spmm_bias_relu_cuda.cu',
             'src/spmm_graph_cuda.cu',
+            'src/spmm_with_many_masks.cu',
             'src/sddmm_cuda.cu',
             'src/sddmm_graph_cuda.cu',
+            'src/sddmm_with_many_masks.cu',
             'src/softmax_cuda.cu',
+            'src/softmax_with_many_masks.cu',
             'src/transpose_cuda.cu'
         ],
         libraries=['sputnik', 'cusparse'],

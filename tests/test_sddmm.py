@@ -4,7 +4,6 @@ import torch_sputnik
 import connectors
 import initializers
 import sparse_matrix
-import time
 
 def mm(sparse, lhs_matrix, rhs_matrix, m, k, n):
     result = torch.matmul(lhs_matrix, rhs_matrix.transpose(-2, -1))
