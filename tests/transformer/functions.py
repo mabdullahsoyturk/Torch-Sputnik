@@ -41,28 +41,30 @@ class Spmm(torch.autograd.Function):
     @staticmethod
     def backward(ctx, grad_output):
         print(f'Spmm backward works')
+        b = ctx.b
         m = ctx.m
         k = ctx.k
+        nonzeros = ctx.nonzeros
         row_indices = ctx.row_indices
         row_offsets = ctx.row_offsets
         column_indices = ctx.column_indices
         values, dense = ctx.saved_tensors
 
-        grad_m = grad_k = grad_values = grad_row_indices = grad_row_offsets = grad_column_indices = grad_dense = None
+        grad_b = grad_m = grad_k = grad_nonzeros = grad_values = grad_row_indices = grad_row_offsets = grad_column_indices = grad_dense = None
 
         # sparse matrix grad
-        #print(f'grad_output: {grad_output.size()}, dense: {dense.size()}')
-        grad_values = torch_sputnik.sddmm(m, k,
+        print(f'grad_output: {grad_output.size()}, dense: {dense.size()}')
+        grad_values = torch_sputnik.sddmm_many_mask(b, m, k, nonzeros,
                                         row_indices, 
                                         row_offsets, 
                                         column_indices,
                                         grad_output, 
                                         dense)
 
-        #print(f'[SpMM GRAD] values: {values.size()}')
-        values_t, row_offsets_t, column_indices_t = torch_sputnik.csr_transpose(m, k, 
-                                    values[0], 
-                                    row_offsets, 
+        print(f'[SpMM GRAD] m: {m}, k: {k}, values: {values.size()}, row_offsets: {row_offsets.size()}, column_indices: {column_indices.size()}')
+        values_t, row_offsets_t, column_indices_t = torch_sputnik.csr_transpose_many_mask(b, m, k, nonzeros, 
+                                    values,
+                                    row_offsets,
                                     column_indices)
         
         row_indices_t = diffsort(row_offsets_t)
@@ -77,7 +79,7 @@ class Spmm(torch.autograd.Function):
 
         print(f'Spmm backward finished')
 
-        return grad_m, grad_k, grad_values, grad_row_indices, grad_row_offsets, grad_column_indices, grad_dense
+        return grad_b, grad_m, grad_k, grad_nonzeros, grad_values, grad_row_indices, grad_row_offsets, grad_column_indices, grad_dense
 
 class CsrSoftmax(torch.autograd.Function):
     @staticmethod

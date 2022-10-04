@@ -27,6 +27,7 @@ torch::Tensor sddmm_many_mask(int b, int m, int n,
     int dim_offset  = lhs_matrix.dim() - 2;
     int replication = dim_offset == 1 ? lhs_matrix.size(0) : 1;
     int k           = lhs_matrix.size(dim_offset + 1);
+    int num_heads   = replication / b;
 
     int max_nonzeros = -1;
 
@@ -49,14 +50,19 @@ torch::Tensor sddmm_many_mask(int b, int m, int n,
     float minus_inf = -std::numeric_limits<float>::infinity();
     torch::Tensor output = replication == 1 ? torch::full({max_nonzeros}, minus_inf, options) : torch::full({replication, max_nonzeros}, minus_inf, options);
 
+    int column_indices_tracker = 0;
     for (int idx = 0; idx < replication; ++idx) {
-        int batch_index = idx % b;  
-        //std::cout << replication << " " << idx << " " << b << " " << batch_index << std::endl;
+        int batch_index = idx / num_heads;  
         int nonzero = nonzeros[batch_index].item<int>();
+
+        if(idx != 0 && idx % num_heads == 0) {
+            column_indices_tracker += nonzeros[batch_index - 1].item<int>();
+        }
+
         CUDA_CALL(sputnik::CudaSddmm(m, k, n, nonzero, 
                                 row_indices.data_ptr<int>() + m * batch_index, 
                                 row_offsets.data_ptr<int>() + (m + 1) * batch_index, 
-                                column_indices.data_ptr<int>() + nonzero * batch_index,
+                                column_indices.data_ptr<int>() + column_indices_tracker,
                                 lhs_matrix.data_ptr<float>() + m * k * idx, 
                                 rhs_matrix.data_ptr<float>() + k * n * idx, 
                                 output.data_ptr<float>() + max_nonzeros * idx, 

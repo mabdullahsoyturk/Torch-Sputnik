@@ -23,6 +23,7 @@ torch::Tensor sparse_softmax_many_mask(int b, int m,
 
     int dim_offset = values.dim() - 1;
     int replication = dim_offset == 1 ? values.size(0) : 1;
+    int num_heads = replication / b;
 
     int max_nonzeros = -1;
 
@@ -39,14 +40,20 @@ torch::Tensor sparse_softmax_many_mask(int b, int m,
     
     torch::Tensor output = torch::zeros_like(values, options);
 
+    int column_indices_tracker = 0;
     for (int idx = 0; idx < replication; ++idx) {
-        int batch_index = idx % b;
+        int batch_index = idx / num_heads;
         int nonzero = nonzeros[batch_index].item<int>();
+
+        if(idx != 0 && idx % num_heads == 0) {
+            column_indices_tracker += nonzeros[batch_index - 1].item<int>();
+        }
+
         CUDA_CALL(sputnik::SparseSoftmax(m, n, nonzero,
                                 values.data_ptr<float>() + max_nonzeros * idx,
                                 row_indices.data_ptr<int>() + m * batch_index, 
                                 row_offsets.data_ptr<int>() + (m + 1) * batch_index, 
-                                column_indices.data_ptr<int>() + nonzero * batch_index,
+                                column_indices.data_ptr<int>() + column_indices_tracker,
                                 output.data_ptr<float>() + max_nonzeros * idx, 
                                 stream));     
     }

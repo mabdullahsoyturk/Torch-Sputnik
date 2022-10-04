@@ -32,8 +32,9 @@ torch::Tensor spmm_many_mask(int b, int m, int k,
         }
     }
    
-    int dim_offset = dense.dim() - 2;
+    int dim_offset  = dense.dim() - 2;
     int replication = dim_offset == 1 ? dense.size(0) : 1;
+    int num_heads   = replication / b;
     
     int n = dense.size(dim_offset + 1);
 
@@ -48,17 +49,28 @@ torch::Tensor spmm_many_mask(int b, int m, int k,
 
     torch::Tensor output = replication == 1 ? torch::zeros({m, n}, options) : torch::zeros({replication, m, n}, options);
 
+    int column_indices_tracker = 0;
     for (int idx = 0; idx < replication; ++idx) {
-        int batch_index = idx % b;  
+        int batch_index = idx / num_heads;  
         int nonzero = nonzeros[batch_index].item<int>();
+
+        if(idx != 0 && idx % num_heads == 0) {
+            column_indices_tracker += nonzeros[batch_index - 1].item<int>();
+        }
+
+        std::cout << max_nonzeros << " " << nonzero << " " << column_indices_tracker << std::endl;
+
+        std::cout << "m: " << m << ", k: " << k << ", batch_index: " << batch_index << std::endl;
+
         CUDA_CALL(sputnik::CudaSpmm(m, k, n, nonzero, 
                                     row_indices.data_ptr<int>() + m * batch_index, 
                                     values.data_ptr<float>() + max_nonzeros * idx,
                                     row_offsets.data_ptr<int>() + (m + 1) * batch_index, 
-                                    column_indices.data_ptr<int>() + nonzero * batch_index,
+                                    column_indices.data_ptr<int>() + column_indices_tracker,
                                     dense.data_ptr<float>() + k * n * idx,
                                     output.data_ptr<float>() + m * n * idx, 
                                     stream));
+        
     }
 
     return output;
