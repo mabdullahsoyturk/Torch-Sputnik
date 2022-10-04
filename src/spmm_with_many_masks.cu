@@ -49,7 +49,7 @@ torch::Tensor spmm_many_mask(int b, int m, int k,
     torch::Tensor output = replication == 1 ? torch::zeros({m, n}, options) : torch::zeros({replication, m, n}, options);
 
     for (int idx = 0; idx < replication; ++idx) {
-        int batch_index = idx / b;  
+        int batch_index = idx % b;  
         int nonzero = nonzeros[batch_index].item<int>();
         CUDA_CALL(sputnik::CudaSpmm(m, k, n, nonzero, 
                                     row_indices.data_ptr<int>() + m * batch_index, 

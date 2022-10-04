@@ -16,6 +16,29 @@ def generate_mask(m, n, device, sparsity=0.9, round_to=4):
 
     return torch.from_numpy(mask).reshape(m, n).cuda(device)
 
+def dense_to_sparse_3d(mask):
+    values_list = []
+    row_indices_list = []
+    row_offsets_list = []
+    column_indices_list = []
+    nnzs = []
+
+    for index in range(mask.size(0)):
+        values, row_indices, row_offsets, column_indices, nnz = dense_to_sparse(mask[index, :, :])
+        values_list.append(values)
+        row_indices_list.append(row_indices)
+        row_offsets_list.append(row_offsets)
+        column_indices_list.append(column_indices)
+        nnzs.append(nnz)
+
+    values = torch.cat(values_list)
+    row_indices = torch.cat(row_indices_list)
+    row_offsets = torch.cat(row_offsets_list)
+    column_indices = torch.cat(column_indices_list)
+    nnzs = torch.tensor(nnzs)
+
+    return values, row_indices, row_offsets, column_indices, nnzs
+
 def dense_to_sparse(matrix):
     csr = matrix.to_sparse_csr()
     values = csr.values().detach().to(torch.float32).requires_grad_(True)
@@ -23,7 +46,7 @@ def dense_to_sparse(matrix):
     row_indices = diffsort(row_offsets)
     column_indices = csr.col_indices().to(torch.int32)
 
-    return values, row_indices, row_offsets, column_indices
+    return values, row_indices, row_offsets, column_indices, csr._nnz()
 
 def diffsort(offsets):
     diffs = (offsets - torch.roll(offsets, -1, 0))[:-1]

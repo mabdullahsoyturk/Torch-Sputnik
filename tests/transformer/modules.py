@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 import torch_sputnik
 
-from utils import split_tensor_along_last_dim, generate_mask, dense_to_sparse, divide
+from utils import *
 from functions import Sddmm, CsrSoftmax, Spmm, SparseLinearFunction
 
 class SparseCoreAttention(torch.nn.Module):
@@ -16,7 +16,7 @@ class SparseCoreAttention(torch.nn.Module):
         self.hidden_size_per_attention_head = divide(hidden_size, num_attention_heads)
 
         self.mask2d = generate_mask(m=512, n=512, device=0, sparsity=0.9)
-        _, self.row_indices, self.row_offsets, self.column_indices = dense_to_sparse(self.mask2d)
+        _, self.row_indices, self.row_offsets, self.column_indices, _ = dense_to_sparse(self.mask2d)
 
         self.sddmm = Sddmm.apply
         self.softmax = CsrSoftmax.apply
@@ -29,6 +29,8 @@ class SparseCoreAttention(torch.nn.Module):
 
     def forward(self, query, key, value, mask):
         # query, key, value: each [b, s, n, hn]
+        b = mask.size(0)
+        values, row_indices, row_offsets, column_indices, nnzs = dense_to_sparse_3d(mask.squeeze())
 
         # output_shape: [s, b, h]
         output_shape = (query.size(1), query.size(0), query.size(2) * query.size(3))
@@ -43,28 +45,31 @@ class SparseCoreAttention(torch.nn.Module):
         key = self.four_d_to_three_d(key)
         value = self.four_d_to_three_d(value)
 
-        scores = self.sddmm(
+        scores = self.sddmm(b,
                     self.seq_length, self.seq_length,
-                    self.row_indices, 
-                    self.row_offsets, 
-                    self.column_indices, 
+                    nnzs,
+                    row_indices, 
+                    row_offsets, 
+                    column_indices, 
                     query, 
                     key
         ) / math.sqrt(self.hidden_size_per_attention_head)
 
         weights = self.softmax(
+                    b, self.seq_length, nnzs,
                     scores, 
-                    self.row_indices, 
-                    self.row_offsets, 
-                    self.column_indices
+                    row_indices, 
+                    row_offsets, 
+                    column_indices
         )
 
-        representations = self.spmm(
+        representations = self.spmm(b,
                 self.seq_length, self.seq_length,
+                nnzs,
                 weights,
-                self.row_indices, 
-                self.row_offsets, 
-                self.column_indices, 
+                row_indices, 
+                row_offsets, 
+                column_indices, 
                 value
         )
 

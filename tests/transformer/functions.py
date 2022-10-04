@@ -22,9 +22,11 @@ class Spmm(torch.autograd.Function):
     """
 
     @staticmethod
-    def forward(ctx, m, k, values, row_indices, row_offsets, column_indices, dense):
+    def forward(ctx, b, m, k, nonzeros, values, row_indices, row_offsets, column_indices, dense):
+        ctx.b = b
         ctx.m = m
         ctx.k = k
+        ctx.nonzeros = nonzeros
         ctx.row_indices = row_indices
         ctx.row_offsets = row_offsets
         ctx.column_indices = column_indices
@@ -32,7 +34,7 @@ class Spmm(torch.autograd.Function):
 
         #print(f'm: {m}, k: {k}, values: {values.size()}, row_indices: {row_indices.size()}, row_offsets: {row_offsets.size()}, column_indices: {column_indices.size()}, dense: {dense.size()}')
         
-        result = torch_sputnik.spmm(m, k, values, row_indices, row_offsets, column_indices, dense)
+        result = torch_sputnik.spmm_many_mask(b, m, k, nonzeros, values, row_indices, row_offsets, column_indices, dense)
 
         return result
 
@@ -79,13 +81,17 @@ class Spmm(torch.autograd.Function):
 
 class CsrSoftmax(torch.autograd.Function):
     @staticmethod
-    def forward(ctx, scores, row_indices, row_offsets, column_indices):
+    def forward(ctx, b, m, nonzeros, scores, row_indices, row_offsets, column_indices):
+        ctx.b = b
+        ctx.m = m
+        ctx.nonzeros = nonzeros
         ctx.scores = scores
         ctx.row_indices = row_indices
         ctx.row_offsets = row_offsets
         ctx.column_indices = column_indices
 
-        result = torch_sputnik.sparse_softmax(
+        result = torch_sputnik.sparse_softmax_many_mask(
+                    b, m, nonzeros,
                     scores, 
                     row_indices, 
                     row_offsets, 
@@ -137,15 +143,17 @@ class Sddmm(torch.autograd.Function):
     """  
 
     @staticmethod
-    def forward(ctx, m, n, row_indices, row_offsets, column_indices, lhs_matrix, rhs_matrix):
+    def forward(ctx, b, m, n, nonzeros, row_indices, row_offsets, column_indices, lhs_matrix, rhs_matrix):
+        ctx.b = b
         ctx.m = m
         ctx.n = n
+        ctx.nonzeros = nonzeros
         ctx.row_indices = row_indices
         ctx.row_offsets = row_offsets
         ctx.column_indices = column_indices
         ctx.save_for_backward(lhs_matrix, rhs_matrix)
 
-        result = torch_sputnik.sddmm(m, n, row_indices, row_offsets, column_indices, lhs_matrix, rhs_matrix)
+        result = torch_sputnik.sddmm_many_mask(b, m, n, nonzeros, row_indices, row_offsets, column_indices, lhs_matrix, rhs_matrix)
 
         return result
 

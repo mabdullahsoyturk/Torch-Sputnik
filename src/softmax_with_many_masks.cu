@@ -40,7 +40,7 @@ torch::Tensor sparse_softmax_many_mask(int b, int m,
     torch::Tensor output = torch::zeros_like(values, options);
 
     for (int idx = 0; idx < replication; ++idx) {
-        int batch_index = idx / b;
+        int batch_index = idx % b;
         int nonzero = nonzeros[batch_index].item<int>();
         CUDA_CALL(sputnik::SparseSoftmax(m, n, nonzero,
                                 values.data_ptr<float>() + max_nonzeros * idx,

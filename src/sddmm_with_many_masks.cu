@@ -50,7 +50,8 @@ torch::Tensor sddmm_many_mask(int b, int m, int n,
     torch::Tensor output = replication == 1 ? torch::full({max_nonzeros}, minus_inf, options) : torch::full({replication, max_nonzeros}, minus_inf, options);
 
     for (int idx = 0; idx < replication; ++idx) {
-        int batch_index = idx / b;  
+        int batch_index = idx % b;  
+        //std::cout << replication << " " << idx << " " << b << " " << batch_index << std::endl;
         int nonzero = nonzeros[batch_index].item<int>();
         CUDA_CALL(sputnik::CudaSddmm(m, k, n, nonzero, 
                                 row_indices.data_ptr<int>() + m * batch_index, 
