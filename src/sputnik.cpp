@@ -85,6 +85,13 @@ std::vector<torch::Tensor> csr_transpose(
                    torch::Tensor row_offsets,
                    torch::Tensor column_indices);
 
+std::vector<torch::Tensor> csr_transpose_many_mask(
+                   int b, int m, int n,
+                    torch::Tensor nonzeros,
+                    torch::Tensor values, 
+                    torch::Tensor row_offsets,
+                    torch::Tensor column_indices);
+
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   m.def("spmm", &spmm, "Sparse Matrix Matrix Multiplication: AxB");
   m.def("spmm_many_mask", &spmm_many_mask, "Sparse Matrix Matrix Multiplication: AxB");
@@ -98,4 +105,5 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   m.def("sparse_softmax", &sparse_softmax, "Computes softmax function across the last dim of a sparse matrix");
   m.def("sparse_softmax_many_mask", &sparse_softmax_many_mask, "Computes softmax function across the last dim of a sparse matrix");
   m.def("csr_transpose", &csr_transpose, "Transpose sparse matrix");
+  m.def("csr_transpose_many_mask", &csr_transpose_many_mask, "Transpose sparse matrix");
 }

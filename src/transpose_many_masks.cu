@@ -54,7 +54,9 @@ std::vector<torch::Tensor> csr_transpose_many_mask(int b, int m, int n,
 
     cusparseHandle_t handle = at::cuda::getCurrentCUDASparseHandle();
 
-    int num_heads = values.size(0) / b;
+    int replication = values.size(0);
+
+    int num_heads = replication / b;
     int column_indices_out_size = 0;
     int max_nonzeros = -1;
 
@@ -78,7 +80,7 @@ std::vector<torch::Tensor> csr_transpose_many_mask(int b, int m, int n,
                                         .device(torch::kCUDA, values.device().index());
     
 
-    torch::Tensor output_values = torch::zeros({b, max_nonzeros}, values_options);
+    torch::Tensor output_values = torch::zeros({replication, max_nonzeros}, values_options);
     torch::Tensor output_row_offsets = torch::zeros({(n + 1) * nonzeros.size(0)}, index_options);
     torch::Tensor output_column_indices = torch::zeros({column_indices_out_size}, index_options);
 
@@ -87,7 +89,8 @@ std::vector<torch::Tensor> csr_transpose_many_mask(int b, int m, int n,
     out_vector.push_back(output_row_offsets);
     out_vector.push_back(output_column_indices);
 
-    for(int batch_index = 0; idx < b; idx++) {
+    for(int idx = 0; idx < replication; idx++) {
+        int batch_index = idx / num_heads;
         int nonzero = nonzeros[batch_index].item<int>();
         // (Possibly) get a temporary buffer to work in.
         torch::Tensor workspace = allocate_transpose_workspace_many(&handle, m, n, nonzero, 
@@ -103,7 +106,7 @@ std::vector<torch::Tensor> csr_transpose_many_mask(int b, int m, int n,
             handle, m, n, nonzero, 
             values.data_ptr<float>() + batch_index * max_nonzeros, 
             row_offsets.data_ptr<int>() + batch_index * (n + 1),
-            column_indices.data_ptr<int>() + , 
+            column_indices.data_ptr<int>(), 
             output_values.data_ptr<float>(), 
             output_row_offsets.data_ptr<int>(), 
             output_column_indices.data_ptr<int>(),

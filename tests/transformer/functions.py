@@ -104,16 +104,20 @@ class CsrSoftmax(torch.autograd.Function):
     @staticmethod
     def backward(ctx, grad_output):
         print(f'Softmax backward works')
+        b = ctx.b
+        m = ctx.m
+        nonzeros = ctx.nonzeros
         scores = ctx.scores
         row_indices = ctx.row_indices
         row_offsets = ctx.row_offsets
         column_indices = ctx.column_indices
 
-        grad_scores = grad_row_indices = grad_row_offsets = grad_column_indices = None
+        grad_b = grad_m = grad_nonzeros = grad_scores = grad_row_indices = grad_row_offsets = grad_column_indices = None
 
         I = torch.eye(grad_output.shape[0], grad_output.shape[1]).cuda()
 
-        softmax = torch_sputnik.sparse_softmax(
+        softmax = torch_sputnik.sparse_softmax_many_mask(
+                        b, m, nonzeros,
                         grad_output, 
                         row_indices, 
                         row_offsets, 
@@ -123,7 +127,7 @@ class CsrSoftmax(torch.autograd.Function):
 
         print(f'Softmax backward finished')
 
-        return grad_scores, grad_row_indices, grad_row_offsets, grad_column_indices
+        return grad_b, grad_m, grad_nonzeros, grad_scores, grad_row_indices, grad_row_offsets, grad_column_indices
 
 class Sddmm(torch.autograd.Function):
     """ Sampled Dense Dense Matrix Multiplication
@@ -162,17 +166,20 @@ class Sddmm(torch.autograd.Function):
     @staticmethod
     def backward(ctx, grad_output):
         print(f'Sddmm backward works')
+        b = ctx.b
         m = ctx.m
         n = ctx.n
+        nonzeros = ctx.nonzeros
         row_indices = ctx.row_indices
         row_offsets = ctx.row_offsets
         column_indices = ctx.column_indices
         lhs_matrix, rhs_matrix = ctx.saved_tensors
 
-        grad_m = grad_n = grad_row_indices = grad_row_offsets = grad_column_indices = grad_lhs = grad_rhs = None
+        grad_b = grad_m = grad_n = grad_nonzeros = grad_row_indices = grad_row_offsets = grad_column_indices = grad_lhs = grad_rhs = None
         
         # lhs grad
-        grad_lhs = torch_sputnik.spmm(m, n, 
+        print(f'[SDDMM GRAD] grad_output: {grad_output.size()}')
+        grad_lhs = torch_sputnik.spmm_many_mask(b, m, n, nonzeros, 
                                     grad_output,
                                     row_indices, 
                                     row_offsets, 
@@ -180,15 +187,16 @@ class Sddmm(torch.autograd.Function):
                                     rhs_matrix)
 
         #print(f'[SDDMM GRAD] values: {grad_output.size()}')
-        grad_t, row_offsets_t, column_indices_t = torch_sputnik.csr_transpose(m, n, 
-                                    grad_output[0], 
+        grad_t, row_offsets_t, column_indices_t = torch_sputnik.csr_transpose_many_mask(b, m, n, nonzeros, 
+                                    grad_output, 
                                     row_offsets, 
                                     column_indices)
 
         row_indices_t = diffsort(row_offsets_t)
 
         # rhs grad
-        grad_rhs = torch_sputnik.left_spmm(n, m,
+        print(f'[SDDMM GRAD] grad_t: {grad_t.size()}, lhs_matrix: {lhs_matrix.size()}')
+        grad_rhs = torch_sputnik.spmm_many_mask(b, n, m, nonzeros,
                                     grad_t, 
                                     row_indices_t, 
                                     row_offsets_t, 
@@ -197,7 +205,7 @@ class Sddmm(torch.autograd.Function):
 
         print(f'Sddmm backward finished')
 
-        return grad_m, grad_n, grad_row_indices, grad_row_offsets, grad_column_indices, grad_lhs, grad_rhs
+        return grad_b, grad_m, grad_n, grad_nonzeros, grad_row_indices, grad_row_offsets, grad_column_indices, grad_lhs, grad_rhs
 
 class SparseLinearFunction(torch.autograd.Function):
 

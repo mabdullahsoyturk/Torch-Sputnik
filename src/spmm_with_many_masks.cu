@@ -40,6 +40,7 @@ torch::Tensor spmm_many_mask(int b, int m, int k,
 
     /*--- CHECKS ---*/
     // Validate the sparse matrix and dense matrix shapes match.
+    std::cout << "Replication: " << replication << ", values.size(0): " << values.size(0) << std::endl;
     assert(replication == 1 || replication == values.size(0)); // First dim of values and dense must match
 
     auto options = torch::TensorOptions()
@@ -58,9 +59,9 @@ torch::Tensor spmm_many_mask(int b, int m, int k,
             column_indices_tracker += nonzeros[batch_index - 1].item<int>();
         }
 
-        std::cout << max_nonzeros << " " << nonzero << " " << column_indices_tracker << std::endl;
+        //std::cout << max_nonzeros << " " << nonzero << " " << column_indices_tracker << std::endl;
 
-        std::cout << "m: " << m << ", k: " << k << ", batch_index: " << batch_index << std::endl;
+        //std::cout << "m: " << m << ", k: " << k << ", batch_index: " << batch_index << std::endl;
 
         CUDA_CALL(sputnik::CudaSpmm(m, k, n, nonzero, 
                                     row_indices.data_ptr<int>() + m * batch_index, 

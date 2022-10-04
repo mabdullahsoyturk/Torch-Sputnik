@@ -23,7 +23,8 @@ setup(
             'src/sddmm_with_many_masks.cu',
             'src/softmax_cuda.cu',
             'src/softmax_with_many_masks.cu',
-            'src/transpose_cuda.cu'
+            'src/transpose_cuda.cu',
+            'src/transpose_many_masks.cu'
         ],
         libraries=['sputnik', 'cusparse'],
         extra_link_args=['-L/usr/local/lib'],
