@@ -12,8 +12,8 @@ torch::Tensor sparse_softmax_many_mask(int b, int m,
                                         torch::Tensor column_indices) {
     /*--- CHECKS ---*/
     assert(values.dim() == 1 || values.dim() == 2); // Values should have 1 or 2 dimensions
-    assert(row_indices.dim() == 1); // Row indices should have 1 dimension
-    assert(row_offsets.dim() == 1); // Row offsets should have 1 dimension
+    //assert(row_indices.dim() == 1); // Row indices should have 1 dimension
+    //assert(row_offsets.dim() == 1); // Row offsets should have 1 dimension
     assert(column_indices.dim() == 1); // Column indices should have 1 dimension
     
     at::cuda::CUDAStream torch_stream = at::cuda::getCurrentCUDAStream();

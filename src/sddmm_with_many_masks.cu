@@ -13,8 +13,8 @@ torch::Tensor sddmm_many_mask(int b, int m, int n,
                               torch::Tensor lhs_matrix,
                               torch::Tensor rhs_matrix) {
     /*--- CHECKS ---*/
-    assert(row_indices.dim() == 1); // Row indices should have 1 dimension
-    assert(row_offsets.dim() == 1); // Row offsets should have 1 dimension
+    //assert(row_indices.dim() == 1); // Row indices should have 1 dimension
+    //assert(row_offsets.dim() == 1); // Row offsets should have 1 dimension
     assert(column_indices.dim() == 1); // Column indices should have 1 dimension
     assert(lhs_matrix.size(-1) == rhs_matrix.size(-1)); // Last dim of input matrices must match.
     assert(lhs_matrix.dim() == 2 || lhs_matrix.dim() == 3); // Expected 2-dim or 3-dim lhs matrix tensor

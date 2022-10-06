@@ -1,25 +1,8 @@
 import torch
 import torch_sputnik
-from utils import diffsort
+from utils import diffsort, diffsort_many_mask
 
 class Spmm(torch.autograd.Function):
-    """ Sparse Matrix Multiplication
-    
-    Takes one sparse and one dense matrix as inputs. Performs the matrix multiplication. 
-    Sparse matrix is in CSR format. values, row indices, row_offsets and column indices 
-    represent the sparse matrix.
-    
-    Operation: SparseMatrix x DenseMatrix = DenseOutput 
-    
-    Arguments:
-        m: Number of rows in the sparse matrix.
-        k: Number of columns in the sparse matrix.
-        values: Nonzero elements in the sparse matrix.
-        row_indices: Row indices of the output matrix. This is needed for load balance in CUDA kernel.
-        row_offsets: Row offsets of the mask.
-        column_indices: Column indices of the nonzero elements.
-        dense: Dense matrix
-    """
 
     @staticmethod
     def forward(ctx, b, m, k, nonzeros, values, row_indices, row_offsets, column_indices, dense):
@@ -53,7 +36,8 @@ class Spmm(torch.autograd.Function):
         grad_b = grad_m = grad_k = grad_nonzeros = grad_values = grad_row_indices = grad_row_offsets = grad_column_indices = grad_dense = None
 
         # sparse matrix grad
-        print(f'grad_output: {grad_output.size()}, dense: {dense.size()}')
+        #print(f'[SpMM GRAD] grad_output: {grad_output.size()}, dense: {dense.size()}')
+        # grad_output: [32, 512, 64], row_indices: [2048], row_offsets: [2052], column_indices: [525312], dense: [32, 512, 64]
         grad_values = torch_sputnik.sddmm_many_mask(b, m, k, nonzeros,
                                         row_indices, 
                                         row_offsets, 
@@ -61,16 +45,18 @@ class Spmm(torch.autograd.Function):
                                         grad_output, 
                                         dense)
 
-        print(f'[SpMM GRAD] m: {m}, k: {k}, values: {values.size()}, row_offsets: {row_offsets.size()}, column_indices: {column_indices.size()}')
+        #print(f'[SpMM GRAD] csr_transpose --> m: {m}, k: {k}, values: {values.size()}, row_offsets: {row_offsets.size()}, column_indices: {column_indices.size()}')
+        # m: 512, k: 512, values: [32, 131328]
         values_t, row_offsets_t, column_indices_t = torch_sputnik.csr_transpose_many_mask(b, m, k, nonzeros, 
                                     values,
                                     row_offsets,
                                     column_indices)
         
-        row_indices_t = diffsort(row_offsets_t)
+        row_indices_t = diffsort_many_mask(row_offsets_t)
 
         # dense matrix grad
-        grad_dense = torch_sputnik.left_spmm(k, m, 
+        #print(f'[SpMM GRAD] spmm --> k: {k}, m: {k}, nonzeros: {nonzeros}, values_t: {values_t.size()}, row_indices_t: {row_indices_t.size()}, row_offsets_t: {row_offsets_t.size()}, column_indices_t: {column_indices_t.size()}, grad_output: {grad_output.size()}')
+        grad_dense = torch_sputnik.spmm_many_mask(b, k, m, nonzeros, 
                                         values_t, 
                                         row_indices_t, 
                                         row_offsets_t, 
@@ -130,23 +116,6 @@ class CsrSoftmax(torch.autograd.Function):
         return grad_b, grad_m, grad_nonzeros, grad_scores, grad_row_indices, grad_row_offsets, grad_column_indices
 
 class Sddmm(torch.autograd.Function):
-    """ Sampled Dense Dense Matrix Multiplication
-    
-    Takes two dense matrices as inputs. Performs the matrix multiplication and samples
-    the entries specified by the mask. Mask is in CSR format. Row indices, row_offsets
-    and column indices represent the mask.
-    
-    Operation: (LHS x RHS) . mask = Output 
-    
-    Arguments:
-        m: Number of rows in left hand side (lhs) matrix.
-        n: Number of columns in right hand side (rhs) matrix.
-        row_indices: Row indices of the output matrix. This is needed for load balance in CUDA kernel.
-        row_offsets: Row offsets of the mask.
-        column_indices: Column indices of the nonzero elements.
-        lhs_matrix: Left Hand Side matrix
-        rhs_matrix: Right Hand Side matrix
-    """  
 
     @staticmethod
     def forward(ctx, b, m, n, nonzeros, row_indices, row_offsets, column_indices, lhs_matrix, rhs_matrix):
@@ -178,7 +147,8 @@ class Sddmm(torch.autograd.Function):
         grad_b = grad_m = grad_n = grad_nonzeros = grad_row_indices = grad_row_offsets = grad_column_indices = grad_lhs = grad_rhs = None
         
         # lhs grad
-        print(f'[SDDMM GRAD] grad_output: {grad_output.size()}')
+        #print(f'[SDDMM GRAD] b: {b}, m: {m}, n: {n}, nonzeros: {nonzeros}, grad_output: {grad_output.size()}, row_offsets: {row_offsets.size()}, column_indices: {column_indices.size()}, rhs_matrix: {rhs_matrix.size()}')
+        # b: 4, m: 512, n: 512, nonzeros: [4], grad_output: [32, 131328], row_offsets: [2052], column_indices: [525312], rhs_matrix: [32, 512, 64]
         grad_lhs = torch_sputnik.spmm_many_mask(b, m, n, nonzeros, 
                                     grad_output,
                                     row_indices, 
@@ -186,16 +156,20 @@ class Sddmm(torch.autograd.Function):
                                     column_indices, 
                                     rhs_matrix)
 
-        #print(f'[SDDMM GRAD] values: {grad_output.size()}')
+        #print(f'[SDDMM GRAD] grad_output: {grad_output.size()}, row_offsets: {row_offsets.size()}, column_indices: {column_indices.size()}')
+        # grad_output: [32, 131328], row_offsets: [2052], column_indices: [525312]
         grad_t, row_offsets_t, column_indices_t = torch_sputnik.csr_transpose_many_mask(b, m, n, nonzeros, 
                                     grad_output, 
                                     row_offsets, 
                                     column_indices)
 
-        row_indices_t = diffsort(row_offsets_t)
+        #print(f'[SDDMM GRAD] grad_t: {grad_t.size()}, row_offsets_t: {row_offsets_t.size()}, column_indices_t: {column_indices_t.size()}')
+        # grad_output_t: [32, 131328], row_offsets_t: [2052], column_indices_t: [525312]
+        row_indices_t = diffsort_many_mask(row_offsets_t)
 
         # rhs grad
-        print(f'[SDDMM GRAD] grad_t: {grad_t.size()}, lhs_matrix: {lhs_matrix.size()}')
+        #print(f'[SDDMM GRAD] grad_t: {grad_t.size()}, lhs_matrix: {lhs_matrix.size()}')
+        # grad_output_t: [32, 131328], row_offsets_t: [2052], column_indices_t: [525312]
         grad_rhs = torch_sputnik.spmm_many_mask(b, n, m, nonzeros,
                                     grad_t, 
                                     row_indices_t, 

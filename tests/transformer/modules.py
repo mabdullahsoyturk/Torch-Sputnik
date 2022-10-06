@@ -45,7 +45,8 @@ class SparseCoreAttention(torch.nn.Module):
         key = self.four_d_to_three_d(key)
         value = self.four_d_to_three_d(value)
 
-        print(f'row_indices: {row_indices.size()}, row_offsets: {row_offsets.size()}, column_indices: {column_indices.size()}, query: {query.size()}, key: {key.size()}')
+        #print(f'row_indices: {row_indices.size()}, row_offsets: {row_offsets.size()}, column_indices: {column_indices.size()}, query: {query.size()}, key: {key.size()}')
+        # row_indices: [2048], row_offsets: [2052], column_indices: [525312], query: [32, 512, 64], key: [32, 512, 64]
         scores = self.sddmm(b,
                     self.seq_length, self.seq_length,
                     nnzs,
@@ -56,7 +57,8 @@ class SparseCoreAttention(torch.nn.Module):
                     key
         ) / math.sqrt(self.hidden_size_per_attention_head)
 
-        print(f'scores: {scores.size()}, row_indices: {row_indices.size()}, row_offsets: {row_offsets.size()}, column_indices: {column_indices.size()}')
+        #print(f'scores: {scores.size()}, row_indices: {row_indices.size()}, row_offsets: {row_offsets.size()}, column_indices: {column_indices.size()}')
+        # scores: [32, 131328]
         weights = self.softmax(
                     b, self.seq_length, nnzs,
                     scores, 
@@ -65,7 +67,8 @@ class SparseCoreAttention(torch.nn.Module):
                     column_indices
         )
 
-        print(f'weights: {weights.size()}, row_indices: {row_indices.size()}, row_offsets: {row_offsets.size()}, column_indices: {column_indices.size()}, value: {value.size()}')
+        #print(f'weights: {weights.size()}, row_indices: {row_indices.size()}, row_offsets: {row_offsets.size()}, column_indices: {column_indices.size()}, value: {value.size()}')
+        # weights: [32, 131328], value: [32, 512, 64]
         representations = self.spmm(b,
                 self.seq_length, self.seq_length,
                 nnzs,

@@ -32,8 +32,8 @@ def dense_to_sparse_3d(mask):
         nnzs.append(nnz)
 
     values = torch.cat(values_list)
-    row_indices = torch.cat(row_indices_list)
-    row_offsets = torch.cat(row_offsets_list)
+    row_indices = torch.stack(row_indices_list)
+    row_offsets = torch.stack(row_offsets_list)
     column_indices = torch.cat(column_indices_list)
     nnzs = torch.tensor(nnzs)
 
@@ -51,6 +51,17 @@ def dense_to_sparse(matrix):
 def diffsort(offsets):
     diffs = (offsets - torch.roll(offsets, -1, 0))[:-1]
     return torch.argsort(diffs, descending=True).to(torch.int32)
+
+def diffsort_many_mask(offsets):
+    num_masks = offsets.size(0)
+
+    row_indices_list = []
+
+    for idx in range(num_masks):
+        indices = diffsort(offsets[idx])
+        row_indices_list.append(indices)
+
+    return torch.stack(row_indices_list)
 
 def ensure_divisibility(numerator, denominator):
     """Ensure that numerator is divisible by the denominator."""

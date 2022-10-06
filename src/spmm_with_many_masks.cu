@@ -15,8 +15,8 @@ torch::Tensor spmm_many_mask(int b, int m, int k,
                 torch::Tensor dense) {
     /*--- CHECKS ---*/
     assert(values.dim() == 1 || values.dim() == 2); // Values should have 1 or 2 dimensions
-    assert(row_indices.dim() == 1); // Row indices should have 1 dimension
-    assert(row_offsets.dim() == 1); // Row offsets should have 1 dimension
+    //assert(row_indices.dim() == 1); // Row indices should have 1 dimension
+    //assert(row_offsets.dim() == 1); // Row offsets should have 1 dimension
     assert(column_indices.dim() == 1); // Column indices should have 1 dimension
     assert(dense.dim() == 2 || dense.dim() == 3); // Dense should have 2 or 3 dimensions
     assert(values.dim() == dense.dim() - 1); // Values and dense must be replicated the same
@@ -40,15 +40,14 @@ torch::Tensor spmm_many_mask(int b, int m, int k,
 
     /*--- CHECKS ---*/
     // Validate the sparse matrix and dense matrix shapes match.
-    std::cout << "Replication: " << replication << ", values.size(0): " << values.size(0) << std::endl;
     assert(replication == 1 || replication == values.size(0)); // First dim of values and dense must match
 
     auto options = torch::TensorOptions()
                                         .dtype(torch::kFloat32)
                                         .layout(torch::kStrided)
                                         .device(torch::kCUDA, values.device().index());
-
-    torch::Tensor output = replication == 1 ? torch::zeros({m, n}, options) : torch::zeros({replication, m, n}, options);
+    
+    torch::Tensor output = torch::zeros({replication, m, n}, options);
 
     int column_indices_tracker = 0;
     for (int idx = 0; idx < replication; ++idx) {
@@ -61,7 +60,7 @@ torch::Tensor spmm_many_mask(int b, int m, int k,
 
         //std::cout << max_nonzeros << " " << nonzero << " " << column_indices_tracker << std::endl;
 
-        //std::cout << "m: " << m << ", k: " << k << ", batch_index: " << batch_index << std::endl;
+        //std::cout << "m: " << m << ", k: " << k << ", n: " << n << ", batch_index: " << batch_index << ", tracker: " << column_indices_tracker << std::endl;
 
         CUDA_CALL(sputnik::CudaSpmm(m, k, n, nonzero, 
                                     row_indices.data_ptr<int>() + m * batch_index, 
