@@ -15,9 +15,6 @@ class SparseCoreAttention(torch.nn.Module):
         self.seq_length = seq_length
         self.hidden_size_per_attention_head = divide(hidden_size, num_attention_heads)
 
-        self.mask2d = generate_mask(m=512, n=512, device=0, sparsity=0.9)
-        _, self.row_indices, self.row_offsets, self.column_indices, _ = dense_to_sparse(self.mask2d)
-
         self.sddmm = Sddmm.apply
         self.softmax = CsrSoftmax.apply
         self.spmm = Spmm.apply
@@ -81,6 +78,8 @@ class SparseCoreAttention(torch.nn.Module):
 
         # representations: [s, b, h]
         representations = torch.permute(representations, (1, 0, 2)).reshape(*output_shape)
+
+        print(representations)
 
         return representations
 
