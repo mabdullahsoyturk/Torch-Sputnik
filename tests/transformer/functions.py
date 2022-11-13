@@ -23,7 +23,7 @@ class Spmm(torch.autograd.Function):
 
     @staticmethod
     def backward(ctx, grad_output):
-        print(f'Spmm backward works')
+        #print(f'Spmm backward works')
         b = ctx.b
         m = ctx.m
         k = ctx.k
@@ -63,7 +63,7 @@ class Spmm(torch.autograd.Function):
                                         column_indices_t, 
                                         grad_output)
 
-        print(f'Spmm backward finished')
+        #print(f'Spmm backward finished')
 
         return grad_b, grad_m, grad_k, grad_nonzeros, grad_values, grad_row_indices, grad_row_offsets, grad_column_indices, grad_dense
 
@@ -89,7 +89,7 @@ class CsrSoftmax(torch.autograd.Function):
 
     @staticmethod
     def backward(ctx, grad_output):
-        print(f'Softmax backward works')
+        #print(f'Softmax backward works')
         b = ctx.b
         m = ctx.m
         nonzeros = ctx.nonzeros
@@ -100,18 +100,22 @@ class CsrSoftmax(torch.autograd.Function):
 
         grad_b = grad_m = grad_nonzeros = grad_scores = grad_row_indices = grad_row_offsets = grad_column_indices = None
 
-        I = torch.eye(grad_output.shape[0], grad_output.shape[1]).cuda()
+        #I = torch.eye(grad_output.shape[0], grad_output.shape[1]).cuda()
 
-        softmax = torch_sputnik.sparse_softmax_many_mask(
-                        b, m, nonzeros,
-                        grad_output, 
-                        row_indices, 
-                        row_offsets, 
-                        column_indices)
+        softmax = torch.nn.functional.softmax(grad_output, dim=1)
+        #softmax = torch_sputnik.sparse_softmax_many_mask(
+        #                b, m, nonzeros,
+        #                grad_output, 
+        #                row_indices, 
+        #                row_offsets, 
+        #                column_indices)
+        print(f'grad_output: {grad_output}, softmax_result: {softmax}')
 
-        grad_scores = softmax * (I - softmax)
+        #print(f'grad_output: {grad_output.size()}, softmax_out: {softmax.size()}')
+        grad_scores = softmax * (1 - softmax)
+        #print(f'grad_scores: {grad_scores}')
 
-        print(f'Softmax backward finished')
+        #print(f'Softmax backward finished')
 
         return grad_b, grad_m, grad_nonzeros, grad_scores, grad_row_indices, grad_row_offsets, grad_column_indices
 
@@ -134,7 +138,7 @@ class Sddmm(torch.autograd.Function):
 
     @staticmethod
     def backward(ctx, grad_output):
-        print(f'Sddmm backward works')
+        #print(f'Sddmm backward works')
         b = ctx.b
         m = ctx.m
         n = ctx.n
@@ -177,7 +181,7 @@ class Sddmm(torch.autograd.Function):
                                     column_indices_t, 
                                     lhs_matrix)
 
-        print(f'Sddmm backward finished')
+        #print(f'Sddmm backward finished')
 
         return grad_b, grad_m, grad_n, grad_nonzeros, grad_row_indices, grad_row_offsets, grad_column_indices, grad_lhs, grad_rhs
 

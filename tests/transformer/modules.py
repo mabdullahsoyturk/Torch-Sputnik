@@ -2,7 +2,6 @@ import math
 
 import torch
 import torch.nn as nn
-import torch_sputnik
 
 from utils import *
 from functions import Sddmm, CsrSoftmax, Spmm, SparseLinearFunction
@@ -27,7 +26,7 @@ class SparseCoreAttention(torch.nn.Module):
     def forward(self, query, key, value, mask):
         # query, key, value: each [b, s, n, hn]
         b = mask.size(0)
-        values, row_indices, row_offsets, column_indices, nnzs = dense_to_sparse_3d(mask.squeeze())
+        _, row_indices, row_offsets, column_indices, nnzs = dense_to_sparse_3d(mask.squeeze())
 
         # output_shape: [s, b, h]
         output_shape = (query.size(1), query.size(0), query.size(2) * query.size(3))
@@ -43,7 +42,7 @@ class SparseCoreAttention(torch.nn.Module):
         value = self.four_d_to_three_d(value)
 
         #print(f'row_indices: {row_indices.size()}, row_offsets: {row_offsets.size()}, column_indices: {column_indices.size()}, query: {query.size()}, key: {key.size()}')
-        # row_indices: [2048], row_offsets: [2052], column_indices: [525312], query: [32, 512, 64], key: [32, 512, 64]
+        # row_indices: [4, 512], row_offsets: [4, 513], column_indices: [525312], query: [32, 512, 64], key: [32, 512, 64]
         scores = self.sddmm(b,
                     self.seq_length, self.seq_length,
                     nnzs,
@@ -78,8 +77,6 @@ class SparseCoreAttention(torch.nn.Module):
 
         # representations: [s, b, h]
         representations = torch.permute(representations, (1, 0, 2)).reshape(*output_shape)
-
-        print(representations)
 
         return representations
 

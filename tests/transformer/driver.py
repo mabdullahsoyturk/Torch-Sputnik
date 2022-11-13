@@ -13,15 +13,15 @@ def main():
     mask[3][0][3][2] = 0
     mask[3][0][3][3] = 0
 
-    print(mask[3][0])
+    #print(mask[3][0])
 
-    for idx in range(batch_size):
-        print((mask[idx][0] == 1).sum())
+    #for idx in range(batch_size):
+    #    print((mask[idx][0] == 1).sum())
 
     transformer = Transformer(N, seq_length, hidden_size, num_attention_heads, ffn_hidden_size).cuda()
     output = transformer(batch, mask)
 
-    print(output.size())
+    #print(output.size())
 
     torch.sum(output.flatten()).backward()
 

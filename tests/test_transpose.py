@@ -17,20 +17,24 @@ def diffsort(offsets):
 def sparse_transpose(sparse, m, k, n):
     values, row_indices, row_offsets, column_indices = dense_to_sparse(sparse)
 
+    print(values)
     output_values, output_row_offsets, output_column_indices = torch_sputnik.csr_transpose(m, n, values, row_offsets, column_indices)
+    print(values)
 
     return output_values
 
 if __name__ == "__main__":
-    m, k, n = 64, 64, 64
+    m, k, n = 4, 4, 4
     sparse = torch.rand((m * k), dtype=torch.float32).view(m, k).cuda()
 
-    sparse_result = sparse_transpose(sparse, m, k, n).reshape(k, m)
+    sparse[0][:] = 0
 
-    print(sparse_result)
-    print(sparse.t())
+    sparse_result = sparse_transpose(sparse, m, k, n)#.reshape(k, m)
 
-    if ((sparse_result - sparse.t()) < 1e-4).sum().item() == m * n:
-        print("Results match")
-    else:
-        print("Results don't match")
+    #print(sparse_result)
+    #print(sparse.t())
+
+    # if ((sparse_result - sparse.t()) < 1e-4).sum().item() == m * n:
+    #     print("Results match")
+    # else:
+    #     print("Results don't match")
