@@ -58,6 +58,10 @@ torch::Tensor spmm_many_mask(int b, int m, int k,
             column_indices_tracker += nonzeros[batch_index - 1].item<int>();
         }
 
+        if(idx == 0) {
+            continue;
+        }
+
         //std::cout << max_nonzeros << " " << nonzero << " " << column_indices_tracker << std::endl;
 
         //std::cout << "m: " << m << ", k: " << k << ", n: " << n << ", batch_index: " << batch_index << ", tracker: " << column_indices_tracker << std::endl;

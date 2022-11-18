@@ -58,6 +58,10 @@ torch::Tensor sddmm_many_mask(int b, int m, int n,
             column_indices_tracker += nonzeros[batch_index - 1].item<int>();
         }
 
+        if(idx == 0) {
+            continue;
+        }
+
         CUDA_CALL(sputnik::CudaSddmm(m, k, n, nonzero, 
                                 row_indices.data_ptr<int>() + m * batch_index, 
                                 row_offsets.data_ptr<int>() + (m + 1) * batch_index, 

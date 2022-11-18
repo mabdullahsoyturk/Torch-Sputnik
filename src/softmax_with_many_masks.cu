@@ -49,6 +49,10 @@ torch::Tensor sparse_softmax_many_mask(int b, int m,
             column_indices_tracker += nonzeros[batch_index - 1].item<int>();
         }
 
+        if(idx == 0) {
+            continue;
+        }
+
         CUDA_CALL(sputnik::SparseSoftmax(m, n, nonzero,
                                 values.data_ptr<float>() + max_nonzeros * idx,
                                 row_indices.data_ptr<int>() + m * batch_index, 
