@@ -47,8 +47,7 @@ torch::Tensor sddmm_many_mask(int b, int m, int n,
                                         .layout(torch::kStrided)
                                         .device(torch::kCUDA, lhs_matrix.device().index());
 
-    float minus_inf = -std::numeric_limits<float>::infinity();
-    torch::Tensor output = replication == 1 ? torch::full({max_nonzeros}, minus_inf, options) : torch::full({replication, max_nonzeros}, minus_inf, options);
+    torch::Tensor output = torch::full({replication, max_nonzeros}, 0, options);
 
     int column_indices_tracker = 0;
     for (int idx = 0; idx < replication; ++idx) {
