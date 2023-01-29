@@ -1,5 +1,9 @@
+import os
 from setuptools import setup
 from torch.utils.cpp_extension import BuildExtension, CUDAExtension
+
+current_directory = os.getcwd()[:-14]
+sputnik_directory = current_directory + "/sputnik/build"
 
 extra_compile_args = {'cxx' : ['-O2']}
 extra_compile_args['nvcc'] = ['-O3',
@@ -19,10 +23,10 @@ setup(
             'src/transpose_cuda.cu',
         ],
         libraries=['sputnik', 'cusparse'],
-        extra_link_args=['-L/usr/local/lib'],
+        extra_link_args=['-L/usr/local/lib', f'-L{sputnik_directory}/lib'],
         extra_compile_args=extra_compile_args),
     ],
-    include_dirs=["./include", "/usr/local/include"],
+    include_dirs=["./include", "/usr/local/include", f'{sputnik_directory}/include'],
     cmdclass={
         'build_ext': BuildExtension
     })
